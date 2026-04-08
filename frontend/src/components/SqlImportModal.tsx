@@ -44,7 +44,7 @@ export function SqlImportModal({ isOpen, onClose }: SqlImportModalProps) {
 
   return (
     <div className="modal-overlay" onClick={handleClose}>
-      <div className="modal-content sql-import-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal sql-import-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>匯入 SQL DDL</h2>
           <button className="btn-close" onClick={handleClose}>×</button>
