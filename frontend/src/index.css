@@ -1331,3 +1331,17 @@ body {
   gap: 4px;
   flex-wrap: wrap;
 }
+
+/* Selection Box */
+.selection-box {
+  position: fixed;
+  border: 2px dashed var(--accent);
+  background: rgba(137, 180, 250, 0.15);
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* Multi-selected node highlight */
+.react-flow__node.selected {
+  box-shadow: 0 0 0 3px var(--accent);
+}

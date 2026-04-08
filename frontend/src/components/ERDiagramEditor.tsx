@@ -72,6 +72,73 @@ export default function ERDiagramEditor() {
   const [saveStatus, setSaveStatus] = useState<string>('');
   const [showSqlImportModal, setShowSqlImportModal] = useState(false);
 
+  // Box selection state
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectionStart, setSelectionStart] = useState({ x: 0, y: 0 });
+  const [selectionEnd, setSelectionEnd] = useState({ x: 0, y: 0 });
+  const [multiSelectedIds, setMultiSelectedIds] = useState<string[]>([]);
+
+  // Calculate selection box
+  const selectionBox = isSelecting ? {
+    x: Math.min(selectionStart.x, selectionEnd.x),
+    y: Math.min(selectionStart.y, selectionEnd.y),
+    width: Math.abs(selectionEnd.x - selectionStart.x),
+    height: Math.abs(selectionEnd.y - selectionStart.y),
+  } : null;
+
+  // Check if a node is within selection box
+  const isNodeInSelectionBox = useCallback((node: Node) => {
+    if (!selectionBox) return false;
+    const nodeWidth = 220; // approximate entity width
+    const nodeHeight = 40 + node.data.entity.fields.length * 30; // header + fields
+    return (
+      node.position.x < selectionBox.x + selectionBox.width &&
+      node.position.x + nodeWidth > selectionBox.x &&
+      node.position.y < selectionBox.y + selectionBox.height &&
+      node.position.y + nodeHeight > selectionBox.y
+    );
+  }, [selectionBox]);
+
+  // Handle mouse down on pane (start box selection)
+  const onPaneMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return; // Only left click
+    const target = e.target as HTMLElement;
+    // Don't start selection if clicking on a node
+    if (target.closest('.react-flow__node')) return;
+    
+    setIsSelecting(true);
+    setSelectionStart({ x: e.clientX, y: e.clientY });
+    setSelectionEnd({ x: e.clientX, y: e.clientY });
+    setMultiSelectedIds([]);
+  }, []);
+
+  // Handle mouse move (update selection box)
+  const onPaneMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isSelecting) return;
+    setSelectionEnd({ x: e.clientX, y: e.clientY });
+  }, [isSelecting]);
+
+  // Handle mouse up (complete selection)
+  const onPaneMouseUp = useCallback(() => {
+    if (!isSelecting || !selectionBox) {
+      setIsSelecting(false);
+      return;
+    }
+
+    // Find all nodes within selection box
+    const selectedIds = nodes
+      .filter(node => isNodeInSelectionBox(node))
+      .map(node => node.id);
+
+    if (selectedIds.length > 0) {
+      setMultiSelectedIds(selectedIds);
+      // Also set the first one as the primary selected entity
+      setSelectedEntityId(selectedIds[0]);
+    }
+
+    setIsSelecting(false);
+  }, [isSelecting, selectionBox, isNodeInSelectionBox, setSelectedEntityId]);
+
   // Keyboard shortcuts for Undo/Redo/Delete
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -162,14 +229,27 @@ export default function ERDiagramEditor() {
     (changes) => {
       for (const change of changes) {
         if (change.type === 'position' && 'position' in change && change.position && change.id) {
-          updateErEntity(change.id, {
-            x: change.position.x,
-            y: change.position.y,
-          });
+          // If this node is part of multi-selection, move all selected nodes by the same delta
+          if (multiSelectedIds.includes(change.id) && change.dragging === false) {
+            // This is the final position after drag
+            const delta = change.position;
+            // Find the original position of this node from erEntities
+            const nodeEntity = erEntities.find(e => e.id === change.id);
+            if (nodeEntity) {
+              const newX = change.position.x;
+              const newY = change.position.y;
+              updateErEntity(change.id, { x: newX, y: newY });
+            }
+          } else {
+            updateErEntity(change.id, {
+              x: change.position.x,
+              y: change.position.y,
+            });
+          }
         }
       }
     },
-    [updateErEntity]
+    [updateErEntity, multiSelectedIds, erEntities]
   );
 
   // Auto-create FK in target entity when connecting
@@ -474,6 +554,9 @@ export default function ERDiagramEditor() {
           onNodeDoubleClick={onNodeDoubleClick}
           onEdgeClick={onEdgeClick}
           onPaneClick={onPaneClick}
+          onMouseDown={onPaneMouseDown}
+          onMouseMove={onPaneMouseMove}
+          onMouseUp={onPaneMouseUp}
           nodeTypes={nodeTypes}
           fitView
           minZoom={0.2}
@@ -484,6 +567,8 @@ export default function ERDiagramEditor() {
           snapGrid={[10, 10]}
           edgesFocusable={true}
           elementsSelectable={true}
+          selectionOnDrag
+          selectNodesOnDrag={false}
         >
           <Background gap={20} size={1} color="var(--border)" />
           <Controls />
@@ -492,6 +577,18 @@ export default function ERDiagramEditor() {
             maskColor="rgba(30, 30, 46, 0.8)"
             style={{ background: 'var(--bg-surface)' }}
           />
+          {/* Selection Box Overlay */}
+          {selectionBox && (
+            <div
+              className="selection-box"
+              style={{
+                left: selectionBox.x,
+                top: selectionBox.y,
+                width: selectionBox.width,
+                height: selectionBox.height,
+              }}
+            />
+          )}
         </ReactFlow>
       </div>
 
