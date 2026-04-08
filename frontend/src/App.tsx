@@ -22,7 +22,8 @@ const NAV_ITEMS: { page: Page; label: string; icon: string }[] = [
 
 function App() {
   const { activePage, setActivePage, erEntities, erRelationships, setErEntities, setErRelationships } = useStore();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Start with sidebar closed on mobile, open on desktop
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
 
   // Load from localStorage on app start
   useEffect(() => {
