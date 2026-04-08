@@ -1371,6 +1371,11 @@ body {
   border-color: var(--accent);
 }
 
+/* Hide toggle when sidebar is visible on desktop */
+.app-layout:not(.sidebar-collapsed) .sidebar-toggle {
+  display: none;
+}
+
 /* Sidebar Hidden State */
 .sidebar {
   transition: transform 0.3s ease, width 0.3s ease;
@@ -1391,7 +1396,7 @@ body {
     left: 0;
     top: 0;
     height: 100vh;
-    z-index: 1000;
+    z-index: 999;
     transform: translateX(0);
   }
   
@@ -1405,12 +1410,23 @@ body {
     height: 100vh;
   }
   
-  /* Toggle button - always visible on mobile */
+  /* Toggle button - move to right when sidebar is visible */
   .sidebar-toggle {
-    z-index: 1001;
+    z-index: 998;
   }
   
-  /* Modal - full screen on mobile */
+  .sidebar:not(.hidden) ~ .main-canvas .sidebar-toggle,
+  .sidebar:not(.hidden) + .main-canvas .sidebar-toggle {
+    left: auto;
+    right: 10px;
+  }
+  
+  /* Modal - full screen on mobile, z-index above sidebar and toggle */
+  .modal-overlay {
+    z-index: 1000;
+    padding: 0;
+  }
+  
   .modal {
     width: 100% !important;
     height: 100vh !important;
@@ -1418,10 +1434,6 @@ body {
     border-radius: 0;
     left: 0 !important;
     top: 0 !important;
-  }
-  
-  .modal-overlay {
-    padding: 0;
   }
   
   /* React Flow controls - smaller on mobile */
