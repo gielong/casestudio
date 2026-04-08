@@ -1351,7 +1351,7 @@ body {
   position: fixed;
   top: 10px;
   left: 10px;
-  z-index: 1001;
+  z-index: 999;
   width: 40px;
   height: 40px;
   border-radius: 8px;
@@ -1372,16 +1372,12 @@ body {
 }
 
 /* Sidebar Hidden State */
-.sidebar.hidden {
-  transform: translateX(-100%);
-  width: 0;
-  overflow: hidden;
-  padding: 0;
-  margin: 0;
+.sidebar {
+  transition: transform 0.3s ease, width 0.3s ease;
 }
 
-.app-layout.sidebar-collapsed .main-canvas {
-  width: 100%;
+.sidebar.hidden {
+  transform: translateX(-100%);
 }
 
 /* ==================== */
@@ -1389,23 +1385,18 @@ body {
 /* ==================== */
 
 @media (max-width: 768px) {
-  /* Sidebar - hidden by default on mobile */
+  /* Sidebar - always fixed on mobile */
   .sidebar {
     position: fixed;
     left: 0;
     top: 0;
     height: 100vh;
-    z-index: 1002;
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
+    z-index: 1000;
+    transform: translateX(0);
   }
   
   .sidebar.hidden {
     transform: translateX(-100%);
-  }
-  
-  .sidebar:not(.hidden) {
-    transform: translateX(0);
   }
   
   /* Main canvas - full width on mobile */
@@ -1416,77 +1407,42 @@ body {
   
   /* Toggle button - always visible on mobile */
   .sidebar-toggle {
-    position: fixed;
-    top: 10px;
-    left: 10px;
     z-index: 1001;
-    opacity: 1 !important;
-    pointer-events: auto !important;
-  }
-  
-  /* Adjust toolbar for mobile */
-  .toolbar {
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 8px;
-  }
-  
-  .toolbar .btn {
-    padding: 6px 10px;
-    font-size: 12px;
-  }
-  
-  /* Entity node - smaller on mobile */
-  .entity-node {
-    min-width: 180px;
-    font-size: 11px;
-  }
-  
-  .entity-header {
-    padding: 6px 10px;
-    font-size: 12px;
-  }
-  
-  .entity-field {
-    padding: 4px 8px;
-    font-size: 11px;
   }
   
   /* Modal - full screen on mobile */
   .modal {
-    width: 95% !important;
-    max-width: none;
-    height: 90vh;
+    width: 100% !important;
+    height: 100vh !important;
+    max-width: none !important;
+    border-radius: 0;
+    left: 0 !important;
+    top: 0 !important;
   }
   
   .modal-overlay {
-    padding: 10px;
+    padding: 0;
   }
   
   /* React Flow controls - smaller on mobile */
   .react-flow__controls {
-    transform: scale(0.8);
+    transform: scale(0.7);
     transform-origin: bottom right;
   }
   
   .react-flow__minimap {
-    width: 100px !important;
-    height: 70px !important;
+    width: 80px !important;
+    height: 60px !important;
   }
 }
 
 @media (max-width: 480px) {
   /* Even smaller on very small screens */
   .sidebar {
-    width: 280px;
-  }
-  
-  .toolbar .btn {
-    padding: 5px 8px;
-    font-size: 11px;
+    width: 260px;
   }
   
   .entity-node {
-    min-width: 150px;
+    min-width: 140px;
   }
 }
