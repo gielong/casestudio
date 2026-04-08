@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import ConnectionForm from './components/ConnectionForm';
 import SchemaViewer from './components/SchemaViewer';
 import ERDiagramEditor from './components/ERDiagramEditor';
@@ -22,6 +22,7 @@ const NAV_ITEMS: { page: Page; label: string; icon: string }[] = [
 
 function App() {
   const { activePage, setActivePage, erEntities, erRelationships, setErEntities, setErRelationships } = useStore();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Load from localStorage on app start
   useEffect(() => {
@@ -75,8 +76,8 @@ function App() {
   }, [activePage]);
 
   return (
-    <div className="app-layout">
-      <nav className="sidebar">
+    <div className={`app-layout ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
+      <nav className={`sidebar ${sidebarOpen ? '' : 'hidden'}`}>
         <div className="sidebar-header">
           <h1>🗂️ CaseTool</h1>
           <span className="subtitle">CASE 開發輔助工具</span>
@@ -94,7 +95,16 @@ function App() {
           ))}
         </div>
       </nav>
-      <main className="main-canvas">{renderContent()}</main>
+      <main className="main-canvas">
+        <button 
+          className="sidebar-toggle"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          title={sidebarOpen ? '隱藏側邊欄' : '顯示側邊欄'}
+        >
+          {sidebarOpen ? '☰' : '☰'}
+        </button>
+        {renderContent()}
+      </main>
     </div>
   );
 }
