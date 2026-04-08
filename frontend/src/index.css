@@ -1372,8 +1372,10 @@ body {
 }
 
 /* Hide toggle when sidebar is visible on desktop */
-.app-layout:not(.sidebar-collapsed) .sidebar-toggle {
-  display: none;
+@media (min-width: 769px) {
+  .app-layout:not(.sidebar-collapsed) .sidebar-toggle {
+    display: none;
+  }
 }
 
 /* Sidebar Hidden State */
@@ -1410,30 +1412,52 @@ body {
     height: 100vh;
   }
   
-  /* Toggle button - move to right when sidebar is visible */
+  /* Toggle button - always visible on mobile */
   .sidebar-toggle {
     z-index: 998;
-  }
-  
-  .sidebar:not(.hidden) ~ .main-canvas .sidebar-toggle,
-  .sidebar:not(.hidden) + .main-canvas .sidebar-toggle {
-    left: auto;
-    right: 10px;
+    display: flex !important;
   }
   
   /* Modal - full screen on mobile, z-index above sidebar and toggle */
   .modal-overlay {
     z-index: 1000;
     padding: 0;
+    align-items: flex-start;
+    overflow-y: auto;
   }
   
   .modal {
     width: 100% !important;
-    height: 100vh !important;
+    height: auto !important;
+    min-height: 100vh !important;
     max-width: none !important;
     border-radius: 0;
     left: 0 !important;
     top: 0 !important;
+  }
+  
+  /* Modal content responsive */
+  .modal-body {
+    padding: 10px;
+  }
+  
+  .modal-section {
+    margin-bottom: 15px;
+  }
+  
+  .form-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .form-group {
+    width: 100%;
+  }
+  
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
   }
   
   /* React Flow controls - smaller on mobile */
