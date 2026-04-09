@@ -34,6 +34,7 @@ body {
 .app-layout {
   display: flex;
   height: 100%;
+  min-height: 0;
 }
 
 .sidebar {
@@ -1434,10 +1435,15 @@ body {
   border-color: var(--accent);
 }
 
-/* Hide toggle when sidebar is visible on desktop */
+/* Hide toggle when sidebar is visible on desktop - always show toggle, position it */
 @media (min-width: 769px) {
   .app-layout:not(.sidebar-collapsed) .sidebar-toggle {
-    display: none;
+    display: flex;
+    left: 330px;
+  }
+  .app-layout.sidebar-collapsed .sidebar-toggle {
+    display: flex;
+    left: 10px;
   }
 }
 

@@ -97,12 +97,13 @@ function App() {
         </div>
       </nav>
       <main className="main-canvas">
-        <button 
+        <button
           className="sidebar-toggle"
           onClick={() => setSidebarOpen(!sidebarOpen)}
           title={sidebarOpen ? '隱藏側邊欄' : '顯示側邊欄'}
+          style={{ left: sidebarOpen ? '330px' : '10px' }}
         >
-          {sidebarOpen ? '☰' : '☰'}
+          ☰
         </button>
         {renderContent()}
       </main>

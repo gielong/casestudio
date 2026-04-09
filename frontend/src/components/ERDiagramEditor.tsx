@@ -474,7 +474,7 @@ export default function ERDiagramEditor() {
   }, [erEntities, addErEntity]);
 
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex' }}>
+    <div style={{ width: '100%', height: '100%', display: 'flex', minHeight: 0 }}>
       <div style={{ flex: 1, position: 'relative' }}>
         {/* Toolbar */}
         <div className="er-toolbar">
