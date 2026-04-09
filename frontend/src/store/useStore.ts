@@ -164,14 +164,14 @@ export const useStore = create<AppState>((set) => ({
     set((s) => {
       // Push history before change
       const newHistory = s.erHistory.slice(0, s.erHistoryIndex + 1);
-      newHistory.push({ entities: JSON.parse(JSON.stringify(s.erEntities)), relationships: JSON.parse(JSON.stringify(s.erRelationships)) });
+      newHistory.push({ entities: structuredClone(s.erEntities), relationships: structuredClone(s.erRelationships) });
       if (newHistory.length > 50) newHistory.shift();
       return { erEntities: [...s.erEntities, entity], erHistory: newHistory, erHistoryIndex: newHistory.length - 1 };
     }),
   updateErEntity: (id, updates) =>
     set((s) => {
       const newHistory = s.erHistory.slice(0, s.erHistoryIndex + 1);
-      newHistory.push({ entities: JSON.parse(JSON.stringify(s.erEntities)), relationships: JSON.parse(JSON.stringify(s.erRelationships)) });
+      newHistory.push({ entities: structuredClone(s.erEntities), relationships: structuredClone(s.erRelationships) });
       if (newHistory.length > 50) newHistory.shift();
       return {
         erEntities: s.erEntities.map((e) =>
@@ -184,7 +184,7 @@ export const useStore = create<AppState>((set) => ({
   removeErEntity: (id) =>
     set((s) => {
       const newHistory = s.erHistory.slice(0, s.erHistoryIndex + 1);
-      newHistory.push({ entities: JSON.parse(JSON.stringify(s.erEntities)), relationships: JSON.parse(JSON.stringify(s.erRelationships)) });
+      newHistory.push({ entities: structuredClone(s.erEntities), relationships: structuredClone(s.erRelationships) });
       if (newHistory.length > 50) newHistory.shift();
       return {
         erEntities: s.erEntities.filter((e) => e.id !== id),
@@ -202,14 +202,14 @@ export const useStore = create<AppState>((set) => ({
   addErRelationship: (rel) =>
     set((s) => {
       const newHistory = s.erHistory.slice(0, s.erHistoryIndex + 1);
-      newHistory.push({ entities: JSON.parse(JSON.stringify(s.erEntities)), relationships: JSON.parse(JSON.stringify(s.erRelationships)) });
+      newHistory.push({ entities: structuredClone(s.erEntities), relationships: structuredClone(s.erRelationships) });
       if (newHistory.length > 50) newHistory.shift();
       return { erRelationships: [...s.erRelationships, rel], erHistory: newHistory, erHistoryIndex: newHistory.length - 1 };
     }),
   updateErRelationship: (id, updates) =>
     set((s) => {
       const newHistory = s.erHistory.slice(0, s.erHistoryIndex + 1);
-      newHistory.push({ entities: JSON.parse(JSON.stringify(s.erEntities)), relationships: JSON.parse(JSON.stringify(s.erRelationships)) });
+      newHistory.push({ entities: structuredClone(s.erEntities), relationships: structuredClone(s.erRelationships) });
       if (newHistory.length > 50) newHistory.shift();
       return {
         erRelationships: s.erRelationships.map((r) =>
@@ -222,7 +222,7 @@ export const useStore = create<AppState>((set) => ({
   removeErRelationship: (id) =>
     set((s) => {
       const newHistory = s.erHistory.slice(0, s.erHistoryIndex + 1);
-      newHistory.push({ entities: JSON.parse(JSON.stringify(s.erEntities)), relationships: JSON.parse(JSON.stringify(s.erRelationships)) });
+      newHistory.push({ entities: structuredClone(s.erEntities), relationships: structuredClone(s.erRelationships) });
       if (newHistory.length > 50) newHistory.shift();
       return {
         erRelationships: s.erRelationships.filter((r) => r.id !== id),
@@ -236,7 +236,7 @@ export const useStore = create<AppState>((set) => ({
     set((s) => {
       if (!s.selectedEntityId) return s;
       const newHistory = s.erHistory.slice(0, s.erHistoryIndex + 1);
-      newHistory.push({ entities: JSON.parse(JSON.stringify(s.erEntities)), relationships: JSON.parse(JSON.stringify(s.erRelationships)) });
+      newHistory.push({ entities: structuredClone(s.erEntities), relationships: structuredClone(s.erRelationships) });
       if (newHistory.length > 50) newHistory.shift();
       return {
         erEntities: s.erEntities.filter((e) => e.id !== s.selectedEntityId),
@@ -257,7 +257,7 @@ export const useStore = create<AppState>((set) => ({
   addFieldToEntity: (entityId, field) =>
     set((s) => {
       const newHistory = s.erHistory.slice(0, s.erHistoryIndex + 1);
-      newHistory.push({ entities: JSON.parse(JSON.stringify(s.erEntities)), relationships: JSON.parse(JSON.stringify(s.erRelationships)) });
+      newHistory.push({ entities: structuredClone(s.erEntities), relationships: structuredClone(s.erRelationships) });
       if (newHistory.length > 50) newHistory.shift();
       return {
         erEntities: s.erEntities.map((e) =>
@@ -272,7 +272,7 @@ export const useStore = create<AppState>((set) => ({
   updateFieldInEntity: (entityId, fieldId, updates) =>
     set((s) => {
       const newHistory = s.erHistory.slice(0, s.erHistoryIndex + 1);
-      newHistory.push({ entities: JSON.parse(JSON.stringify(s.erEntities)), relationships: JSON.parse(JSON.stringify(s.erRelationships)) });
+      newHistory.push({ entities: structuredClone(s.erEntities), relationships: structuredClone(s.erRelationships) });
       if (newHistory.length > 50) newHistory.shift();
       return {
         erEntities: s.erEntities.map((e) =>
@@ -292,7 +292,7 @@ export const useStore = create<AppState>((set) => ({
   removeFieldFromEntity: (entityId, fieldId) =>
     set((s) => {
       const newHistory = s.erHistory.slice(0, s.erHistoryIndex + 1);
-      newHistory.push({ entities: JSON.parse(JSON.stringify(s.erEntities)), relationships: JSON.parse(JSON.stringify(s.erRelationships)) });
+      newHistory.push({ entities: structuredClone(s.erEntities), relationships: structuredClone(s.erRelationships) });
       if (newHistory.length > 50) newHistory.shift();
       return {
         erEntities: s.erEntities.map((e) =>
@@ -313,7 +313,7 @@ export const useStore = create<AppState>((set) => ({
   pushErHistory: () =>
     set((s) => {
       const newHistory = s.erHistory.slice(0, s.erHistoryIndex + 1);
-      newHistory.push({ entities: JSON.parse(JSON.stringify(s.erEntities)), relationships: JSON.parse(JSON.stringify(s.erRelationships)) });
+      newHistory.push({ entities: structuredClone(s.erEntities), relationships: structuredClone(s.erRelationships) });
       // Keep max 50 history states
       if (newHistory.length > 50) newHistory.shift();
       return { erHistory: newHistory, erHistoryIndex: newHistory.length - 1 };
@@ -324,8 +324,7 @@ export const useStore = create<AppState>((set) => ({
       const newIndex = s.erHistoryIndex - 1;
       const state = s.erHistory[newIndex];
       return {
-        erEntities: JSON.parse(JSON.stringify(state.entities)),
-        erRelationships: JSON.parse(JSON.stringify(state.relationships)),
+        erentities: structuredClone(state.entities), erRelationships: structuredClone(state.relationships),
         erHistoryIndex: newIndex,
         selectedEntityId: null,
         selectedFieldId: null,
@@ -337,8 +336,7 @@ export const useStore = create<AppState>((set) => ({
       const newIndex = s.erHistoryIndex + 1;
       const state = s.erHistory[newIndex];
       return {
-        erEntities: JSON.parse(JSON.stringify(state.entities)),
-        erRelationships: JSON.parse(JSON.stringify(state.relationships)),
+        erentities: structuredClone(state.entities), erRelationships: structuredClone(state.relationships),
         erHistoryIndex: newIndex,
         selectedEntityId: null,
         selectedFieldId: null,
@@ -408,6 +406,9 @@ export const useStore = create<AppState>((set) => ({
       erEntities: [...s.erEntities, ...newEntities],
       erRelationships: [...s.erRelationships, ...newRelationships],
     }));
+
+    // Store errors so UI can display them
+    set({ error: result.errors.length > 0 ? `SQL 解析錯誤 (${result.errors.length} 筆): ${result.errors.slice(0, 3).join('; ')}${result.errors.length > 3 ? '...' : ''}` : null });
 
     return { entities: newEntities.length, relationships: newRelationships.length, errors: result.errors };
   },
@@ -512,3 +513,4 @@ export const useStore = create<AppState>((set) => ({
 export function generateId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
+

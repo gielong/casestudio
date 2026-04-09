@@ -216,6 +216,7 @@ export default function UseCaseEditor() {
 
   const onNodesDelete = useCallback(
     (deleted: Node[]) => {
+      if (deleted.length > 0 && !confirm(`確定刪除 ${deleted.length} 個節點？`)) return;
       for (const n of deleted) {
         handleDeleteSelected(n.id);
       }
@@ -225,6 +226,7 @@ export default function UseCaseEditor() {
 
   const onEdgesDelete = useCallback(
     (deleted: Edge[]) => {
+      if (deleted.length > 0 && !confirm(`確定刪除 ${deleted.length} 條連線？`)) return;
       for (const e of deleted) {
         handleDeleteEdge(e.id);
       }

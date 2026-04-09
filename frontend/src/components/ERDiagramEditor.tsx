@@ -5,6 +5,7 @@ import ReactFlow, {
   MiniMap,
   addEdge,
   MarkerType,
+  useReactFlow,
   type Node,
   type Edge,
   type NodeTypes,
@@ -63,6 +64,8 @@ export default function ERDiagramEditor() {
     deleteSelectedEntity,
   } = useStore();
 
+  const { project } = useReactFlow();
+
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [editingRel, setEditingRel] = useState<ERRelationship | null>(null);
   const [editingEntityId, setEditingEntityId] = useState<string | null>(null);
@@ -105,18 +108,20 @@ export default function ERDiagramEditor() {
     const target = e.target as HTMLElement;
     // Don't start selection if clicking on a node
     if (target.closest('.react-flow__node')) return;
-    
+
+    const flowPos = project({ x: e.clientX, y: e.clientY });
     setIsSelecting(true);
-    setSelectionStart({ x: e.clientX, y: e.clientY });
-    setSelectionEnd({ x: e.clientX, y: e.clientY });
+    setSelectionStart({ x: flowPos.x, y: flowPos.y });
+    setSelectionEnd({ x: flowPos.x, y: flowPos.y });
     setMultiSelectedIds([]);
-  }, []);
+  }, [project]);
 
   // Handle mouse move (update selection box)
   const onPaneMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isSelecting) return;
-    setSelectionEnd({ x: e.clientX, y: e.clientY });
-  }, [isSelecting]);
+    const flowPos = project({ x: e.clientX, y: e.clientY });
+    setSelectionEnd({ x: flowPos.x, y: flowPos.y });
+  }, [isSelecting, project]);
 
   // Handle mouse up (complete selection)
   const onPaneMouseUp = useCallback(() => {
@@ -142,8 +147,9 @@ export default function ERDiagramEditor() {
   // Keyboard shortcuts for Undo/Redo/Delete
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger when typing in input fields
-      if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') {
+      // Don't trigger when typing in input fields or inside modals
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.closest('.modal')) {
         return;
       }
 
@@ -582,10 +588,10 @@ export default function ERDiagramEditor() {
             <div
               className="selection-box"
               style={{
-                left: selectionBox.x,
-                top: selectionBox.y,
-                width: selectionBox.width,
-                height: selectionBox.height,
+                left: Math.min(selectionStart.x, selectionEnd.x),
+                top: Math.min(selectionStart.y, selectionEnd.y),
+                width: Math.abs(selectionEnd.x - selectionStart.x),
+                height: Math.abs(selectionEnd.y - selectionStart.y),
               }}
             />
           )}

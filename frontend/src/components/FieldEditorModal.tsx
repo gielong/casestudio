@@ -54,9 +54,14 @@ export default function FieldEditorModal({ entityId, onClose }: Props) {
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (isDragging) {
+        const newX = e.clientX - dragOffset.x;
+        const newY = e.clientY - dragOffset.y;
+        // Boundary check: keep modal within viewport
+        const maxX = window.innerWidth - 200;
+        const maxY = window.innerHeight - 100;
         setPosition({
-          x: e.clientX - dragOffset.x,
-          y: e.clientY - dragOffset.y,
+          x: Math.max(0, Math.min(newX, maxX)),
+          y: Math.max(0, Math.min(newY, maxY)),
         });
       }
     };

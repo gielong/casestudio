@@ -27,7 +27,7 @@ function formatDataType(field: ERField): string {
   return field.dataType;
 }
 
-function FieldRow({ field }: { field: ERField }) {
+const FieldRow = memo(function FieldRow({ field }: { field: ERField }) {
   const [showTooltip, setShowTooltip] = useState(false);
   
   const hasTooltip = field.notes || field.defaultValue || field.isForeignKey;
@@ -64,7 +64,7 @@ function FieldRow({ field }: { field: ERField }) {
       )}
     </div>
   );
-}
+});
 
 function EntityNode({ data, selected }: NodeProps<{ entity: EREntity }>) {
   const { entity } = data;

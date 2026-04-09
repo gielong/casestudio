@@ -1398,7 +1398,7 @@ body {
 
 /* Selection Box */
 .selection-box {
-  position: fixed;
+  position: absolute;
   border: 2px dashed var(--accent);
   background: rgba(137, 180, 250, 0.15);
   pointer-events: none;
