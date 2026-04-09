@@ -912,7 +912,7 @@ body {
   position: absolute;
   top: 12px;
   left: 12px;
-  z-index: 1000;
+  z-index: 100;
   display: flex;
   gap: 8px;
   align-items: center;
@@ -1439,7 +1439,7 @@ body {
 @media (min-width: 769px) {
   .app-layout:not(.sidebar-collapsed) .sidebar-toggle {
     display: flex;
-    left: 330px;
+    left: 340px;
   }
   .app-layout.sidebar-collapsed .sidebar-toggle {
     display: flex;
