@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { ReactFlowProvider } from 'reactflow';
 import ConnectionForm from './components/ConnectionForm';
 import SchemaViewer from './components/SchemaViewer';
 import ERDiagramEditor from './components/ERDiagramEditor';
@@ -77,37 +78,39 @@ function App() {
   }, [activePage]);
 
   return (
-    <div className={`app-layout ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
-      <nav className={`sidebar ${sidebarOpen ? '' : 'hidden'}`}>
-        <div className="sidebar-header">
-          <h1>🗂️ CaseTool</h1>
-          <span className="subtitle">CASE 開發輔助工具</span>
-        </div>
-        <div className="nav-items">
-          {NAV_ITEMS.map((item) => (
-            <button
-              key={item.page}
-              className={`nav-item ${activePage === item.page ? 'active' : ''}`}
-              onClick={() => setActivePage(item.page)}
-            >
-              <span className="nav-icon">{item.icon}</span>
-              <span className="nav-label">{item.label}</span>
-            </button>
-          ))}
-        </div>
-      </nav>
-      <main className="main-canvas">
-        <button
-          className="sidebar-toggle"
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          title={sidebarOpen ? '隱藏側邊欄' : '顯示側邊欄'}
-          style={{ left: sidebarOpen ? '330px' : '10px' }}
-        >
-          ☰
-        </button>
-        {renderContent()}
-      </main>
-    </div>
+    <ReactFlowProvider>
+      <div className={`app-layout ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
+        <nav className={`sidebar ${sidebarOpen ? '' : 'hidden'}`}>
+          <div className="sidebar-header">
+            <h1>🗂️ CaseTool</h1>
+            <span className="subtitle">CASE 開發輔助工具</span>
+          </div>
+          <div className="nav-items">
+            {NAV_ITEMS.map((item) => (
+              <button
+                key={item.page}
+                className={`nav-item ${activePage === item.page ? 'active' : ''}`}
+                onClick={() => setActivePage(item.page)}
+              >
+                <span className="nav-icon">{item.icon}</span>
+                <span className="nav-label">{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </nav>
+        <main className="main-canvas">
+          <button
+            className="sidebar-toggle"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            title={sidebarOpen ? '隱藏側邊欄' : '顯示側邊欄'}
+            style={{ left: sidebarOpen ? '330px' : '10px' }}
+          >
+            ☰
+          </button>
+          {renderContent()}
+        </main>
+      </div>
+    </ReactFlowProvider>
   );
 }
 
