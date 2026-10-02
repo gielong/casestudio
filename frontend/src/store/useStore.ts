@@ -5,6 +5,7 @@ import {
   type Diagram,
   type EREntity,
   type ERRelationship,
+  type ERSubmodel,
   type ERField,
   type NormalizationResult,
   type DDLGenerateResponse,
@@ -49,6 +50,17 @@ interface AppState {
   addErRelationship: (rel: ERRelationship) => void;
   updateErRelationship: (id: string, updates: Partial<ERRelationship>) => void;
   removeErRelationship: (id: string) => void;
+
+  // ER Submodels
+  erSubmodels: ERSubmodel[];
+  activeSubmodelId: string | null;
+  setErSubmodels: (items: ERSubmodel[]) => void;
+  setActiveSubmodelId: (id: string | null) => void;
+  addErSubmodel: (item: ERSubmodel) => void;
+  updateErSubmodel: (id: string, updates: Partial<ERSubmodel>) => void;
+  removeErSubmodel: (id: string) => void;
+  toggleEntityInSubmodel: (submodelId: string, entityId: string) => void;
+  setSubmodelEntityPosition: (submodelId: string, entityId: string, x: number, y: number) => void;
 
   // Field editing
   selectedEntityId: string | null;
@@ -192,6 +204,11 @@ export const useStore = create<AppState>((set) => ({
           (r) => r.sourceEntityId !== id && r.targetEntityId !== id
         ),
         selectedEntityId: s.selectedEntityId === id ? null : s.selectedEntityId,
+        erSubmodels: s.erSubmodels.map((m) => ({
+          ...m,
+          entityIds: m.entityIds.filter((entityId) => entityId !== id),
+          layout: Object.fromEntries(Object.entries(m.layout).filter(([entityId]) => entityId !== id)),
+        })),
         erHistory: newHistory,
         erHistoryIndex: newHistory.length - 1,
       };
@@ -199,6 +216,33 @@ export const useStore = create<AppState>((set) => ({
 
   erRelationships: [],
   setErRelationships: (rels) => set({ erRelationships: rels }),
+
+  erSubmodels: [],
+  activeSubmodelId: null,
+  setErSubmodels: (items) => set({ erSubmodels: items }),
+  setActiveSubmodelId: (id) => set({ activeSubmodelId: id, selectedEntityId: null, selectedFieldId: null }),
+  addErSubmodel: (item) => set((s) => ({ erSubmodels: [...s.erSubmodels, item], activeSubmodelId: item.id })),
+  updateErSubmodel: (id, updates) => set((s) => ({
+    erSubmodels: s.erSubmodels.map((m) => m.id === id ? { ...m, ...updates } : m),
+  })),
+  removeErSubmodel: (id) => set((s) => ({
+    erSubmodels: s.erSubmodels.filter((m) => m.id !== id),
+    activeSubmodelId: s.activeSubmodelId === id ? null : s.activeSubmodelId,
+  })),
+  toggleEntityInSubmodel: (submodelId, entityId) => set((s) => ({
+    erSubmodels: s.erSubmodels.map((m) => m.id !== submodelId ? m : {
+      ...m,
+      entityIds: m.entityIds.includes(entityId)
+        ? m.entityIds.filter((id) => id !== entityId)
+        : [...m.entityIds, entityId],
+    }),
+  })),
+  setSubmodelEntityPosition: (submodelId, entityId, x, y) => set((s) => ({
+    erSubmodels: s.erSubmodels.map((m) => m.id !== submodelId ? m : {
+      ...m,
+      layout: { ...m.layout, [entityId]: { x, y } },
+    }),
+  })),
   addErRelationship: (rel) =>
     set((s) => {
       const newHistory = s.erHistory.slice(0, s.erHistoryIndex + 1);

@@ -24,7 +24,7 @@ const NAV_ITEMS: { page: Page; label: string; icon: string }[] = [
 ];
 
 function App() {
-  const { activePage, setActivePage, erEntities, erRelationships, setErEntities, setErRelationships } = useStore();
+  const { activePage, setActivePage, erEntities, erRelationships, erSubmodels, setErEntities, setErRelationships, setErSubmodels } = useStore();
   const [isMobile, setIsMobile] = useState(() => window.matchMedia(MOBILE_QUERY).matches);
   const [sidebarOpen, setSidebarOpen] = useState(() => !window.matchMedia(MOBILE_QUERY).matches);
 
@@ -48,6 +48,7 @@ function App() {
         setErEntities(saved.erEntities);
         setErRelationships(saved.erRelationships);
       }
+      setErSubmodels(saved.erSubmodels ?? []);
     } else {
       // Save initial empty project to localStorage
       const empty = createEmptyProject('case-studio');
@@ -61,10 +62,11 @@ function App() {
       const data = createEmptyProject('case-studio');
       data.erEntities = erEntities;
       data.erRelationships = erRelationships;
+      data.erSubmodels = erSubmodels;
       saveToLocal(data);
     }, 1000);
     return () => clearTimeout(timeout);
-  }, [erEntities, erRelationships]);
+  }, [erEntities, erRelationships, erSubmodels]);
 
   const renderContent = useCallback(() => {
     switch (activePage) {
@@ -94,9 +96,9 @@ function App() {
   return (
     <ReactFlowProvider>
       <div className={`app-layout ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
-        <nav className={`sidebar ${sidebarOpen ? '' : 'hidden'}`}>
+        <nav className={`sidebar ${sidebarOpen ? '' : 'collapsed'}`}>
           <div className="sidebar-header">
-            <h1>🗂️ CaseTool</h1>
+            <h1><span className="brand-icon">🗂️</span><span className="brand-text">CaseTool</span></h1>
             <span className="subtitle">CASE 開發輔助工具</span>
           </div>
           <div className="nav-items">
@@ -114,7 +116,7 @@ function App() {
               </button>
             ))}
           </div>
-          <div className="sidebar-version">v2026.10.02.001</div>
+          <div className="sidebar-version">v2026.10.02.002</div>
           <button
             className="sidebar-toggle"
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -122,7 +124,7 @@ function App() {
             aria-label={sidebarOpen ? '隱藏側邊欄' : '顯示側邊欄'}
             aria-expanded={sidebarOpen}
           >
-            {sidebarOpen ? '‹' : '›'}
+            {sidebarOpen ? '◀️' : '▶️'}
           </button>
         </nav>
         <main className="main-canvas">

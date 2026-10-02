@@ -1,5 +1,5 @@
 // Local JSON storage using localStorage + File System Access API
-import type { EREntity, ERRelationship } from '../api/client';
+import type { EREntity, ERRelationship, ERSubmodel } from '../api/client';
 
 const STORAGE_KEY = 'case-tool-data';
 
@@ -11,6 +11,7 @@ export interface ProjectData {
   updatedAt: string;
   erEntities: EREntity[];
   erRelationships: ERRelationship[];
+  erSubmodels: ERSubmodel[];
   requirements: unknown[];
   useCaseData: unknown;
   flowChartData: unknown;
@@ -27,6 +28,7 @@ export function createEmptyProject(name = 'Untitled Project'): ProjectData {
     updatedAt: new Date().toISOString(),
     erEntities: [],
     erRelationships: [],
+    erSubmodels: [],
     requirements: [],
     useCaseData: null,
     flowChartData: null,

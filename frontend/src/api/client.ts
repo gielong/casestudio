@@ -89,9 +89,19 @@ export interface ERRelationship {
   targetLabel: string;
 }
 
+export interface ERSubmodel {
+  id: string;
+  name: string;
+  description: string;
+  backgroundColor?: string;
+  entityIds: string[];
+  layout: Record<string, { x: number; y: number }>;
+}
+
 export interface ERDiagramData {
   entities: EREntity[];
   relationships: ERRelationship[];
+  submodels?: ERSubmodel[];
 }
 
 export interface ERDiagramSaveResponse {
