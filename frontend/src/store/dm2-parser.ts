@@ -128,27 +128,37 @@ export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
     const targetEntity = numericEntityMap.get(targetEntityNumericId);
     if (!sourceEntity || !targetEntity) return;
 
-    // CASE Studio 2 stores FK linkage on the target field: ED03 = relationship id,
-    // EE03 = referenced/source field numeric id. This is confirmed by test(2).dm2.
+    // ED03 on a target field identifies the relationship. EE03 is not globally a field id
+    // in all CASE Studio 2 files (vPOS proves this), so prefer same-name source fields.
     const targetEntry = [...numericFieldMap.values()].find(x => x.entity.id === targetEntity.id && x.relationId === numericRelId);
-    const sourceEntry = targetEntry?.referencedFieldNumericId != null ? numericFieldMap.get(targetEntry.referencedFieldNumericId) : undefined;
-    if (!targetEntry || !sourceEntry) {
-      warnings.push(`Relationship「${name}」已找到 Entity，但找不到欄位對應。`);
-      return;
+    let sourceEntry = targetEntry
+      ? [...numericFieldMap.values()].find(x => x.entity.id === sourceEntity.id && x.field.name.toLowerCase() === targetEntry.field.name.toLowerCase())
+      : undefined;
+
+    // Some legacy files do use a directly resolvable field reference; keep it as fallback.
+    if (!sourceEntry && targetEntry?.referencedFieldNumericId != null) {
+      const direct = numericFieldMap.get(targetEntry.referencedFieldNumericId);
+      if (direct?.entity.id === sourceEntity.id) sourceEntry = direct;
     }
 
-    sourceEntry.field.isPrimaryKey = true;
-    targetEntry.field.isForeignKey = true;
-    targetEntry.field.referencedEntity = sourceEntity.id;
-    targetEntry.field.referencedField = sourceEntry.field.id;
+    if (targetEntry && sourceEntry) {
+      sourceEntry.field.isPrimaryKey = true;
+      targetEntry.field.isForeignKey = true;
+      targetEntry.field.referencedEntity = sourceEntity.id;
+      targetEntry.field.referencedField = sourceEntry.field.id;
+    } else {
+      warnings.push(`Relationship「${name}」保留 Entity 關聯線，但欄位/FK 對應未確認。`);
+    }
 
+    // Always preserve the entity-level relationship line. Some DM2 relationships (views,
+    // conceptual links, older records) have no ED03 field binding at all.
     relationships.push({
-      id: `dm2-rel-${numericRelId}`,
+      id: `dm2-rel-${numericRelId}-${index + 1}`,
       name,
       sourceEntityId: sourceEntity.id,
       targetEntityId: targetEntity.id,
-      sourceFieldId: sourceEntry.field.id,
-      targetFieldId: targetEntry.field.id,
+      sourceFieldId: sourceEntry?.field.id ?? '',
+      targetFieldId: targetEntry?.field.id ?? '',
       sourceCardinality: 'One',
       targetCardinality: 'Many',
       sourceLabel: '',
