@@ -81,6 +81,61 @@ function colorAt(bytes: Uint8Array, from: number, to: number) {
   return `#${hex(bytes[p + 2])}${hex(bytes[p + 3])}${hex(bytes[p + 4])}`;
 }
 
+function generateRadialLayout(entityIds: string[], relationships: ERRelationship[], existing: Record<string, { x: number; y: number }> = {}) {
+  const layout = { ...existing };
+  const missing = entityIds.filter(id => !layout[id]);
+  if (!missing.length) return layout;
+
+  const idSet = new Set(entityIds);
+  const adjacency = new Map<string, Set<string>>();
+  entityIds.forEach(id => adjacency.set(id, new Set()));
+  relationships.forEach(rel => {
+    if (!idSet.has(rel.sourceEntityId) || !idSet.has(rel.targetEntityId)) return;
+    adjacency.get(rel.sourceEntityId)?.add(rel.targetEntityId);
+    adjacency.get(rel.targetEntityId)?.add(rel.sourceEntityId);
+  });
+
+  // Prefer the most-connected entity as the hub, then place graph-distance layers
+  // on progressively larger rings. Disconnected entities occupy an outer ring.
+  const hub = [...missing].sort((a, b) => (adjacency.get(b)?.size ?? 0) - (adjacency.get(a)?.size ?? 0))[0];
+  const distance = new Map<string, number>();
+  if (hub) {
+    distance.set(hub, 0);
+    const queue = [hub];
+    while (queue.length) {
+      const current = queue.shift()!;
+      for (const next of adjacency.get(current) ?? []) {
+        if (!distance.has(next) && missing.includes(next)) {
+          distance.set(next, (distance.get(current) ?? 0) + 1);
+          queue.push(next);
+        }
+      }
+    }
+  }
+
+  const cx = 1800, cy = 1400;
+  const groups = new Map<number, string[]>();
+  const maxDistance = Math.max(0, ...distance.values());
+  missing.forEach(id => {
+    const ring = distance.get(id) ?? maxDistance + 1;
+    const list = groups.get(ring) ?? [];
+    list.push(id);
+    groups.set(ring, list);
+  });
+  for (const [ring, ids] of groups) {
+    if (ring === 0 && ids.length === 1) {
+      layout[ids[0]] = { x: cx, y: cy };
+      continue;
+    }
+    const radius = 520 + Math.max(0, ring - 1) * 650;
+    ids.forEach((id, index) => {
+      const angle = -Math.PI / 2 + (Math.PI * 2 * index) / ids.length;
+      layout[id] = { x: Math.round(cx + Math.cos(angle) * radius), y: Math.round(cy + Math.sin(angle) * radius) };
+    });
+  }
+  return layout;
+}
+
 export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
   const bytes = new Uint8Array(buffer);
   const view = new DataView(buffer);
@@ -251,10 +306,25 @@ export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
   }
   submodels = submodels.filter(sm => sm.name.trim().toLowerCase() !== 'main model');
 
+  // Fallback layout: only fill positions that DM2 did not provide. Relationships
+  // determine a radial graph layout; imported coordinates always take precedence.
+  const mainImported = mainModel?.layout ?? {};
+  const mainLayout = generateRadialLayout(entities.map(e => e.id), relationships, mainImported);
+  for (const entity of entities) {
+    if (!mainImported[entity.id] && mainLayout[entity.id]) {
+      entity.x = mainLayout[entity.id].x;
+      entity.y = mainLayout[entity.id].y;
+    }
+  }
+  submodels = submodels.map(sm => ({
+    ...sm,
+    layout: generateRadialLayout(sm.entityIds, relationships, sm.layout),
+  }));
+
   if (relStarts.length && relationships.length !== relStarts.length) warnings.push(`偵測到 ${relStarts.length} 個 Relationship，成功匯入 ${relationships.length} 個。`);
   const mainLayoutCount = mainModel ? Object.keys(mainModel.layout).length : 0;
   const submodelLayoutCount = submodels.reduce((sum, sm) => sum + Object.keys(sm.layout).length, 0);
-  warnings.push(`Layout：Main Model ${mainLayoutCount} 個、Submodel ${submodelLayoutCount} 個位置；匯入座標已放大 200%。`);
+  warnings.push(`Layout：Main Model ${mainLayoutCount} 個、Submodel ${submodelLayoutCount} 個原始位置；缺少座標的 Entity 已依 Relationship 自動產生放射狀 Layout，DM2 原始座標維持優先且放大 200%。`);
   warnings.push('Nullable、Identity 與部分舊版 DM2 屬性仍在補強；已支援 Description/備註與可解析的 Relationship/FK。');
   return { entities, relationships, submodels, warnings };
 }
