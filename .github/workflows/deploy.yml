@@ -1,5 +1,5 @@
 name: Deploy to GitHub Pages
-# Publishes production plus the current fix/ui-cleanup preview.
+# Publishes production plus the current fix/ui-cleanup preview. Refresh: sidebar handle + version footer.
 
 on:
   push:
