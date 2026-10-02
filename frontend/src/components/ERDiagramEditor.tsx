@@ -45,6 +45,8 @@ export default function ERDiagramEditor() {
   const {
     erEntities,
     erRelationships,
+    erSubmodels,
+    activeSubmodelId,
     erHistoryIndex,
     erHistory,
     addErEntity,
@@ -62,6 +64,13 @@ export default function ERDiagramEditor() {
     undo,
     redo,
     deleteSelectedEntity,
+    setErSubmodels,
+    setActiveSubmodelId,
+    addErSubmodel,
+    updateErSubmodel,
+    removeErSubmodel,
+    toggleEntityInSubmodel,
+    setSubmodelEntityPosition,
   } = useStore();
 
   const { project } = useReactFlow();
@@ -74,6 +83,26 @@ export default function ERDiagramEditor() {
   const [ddlTarget, setDdlTarget] = useState<DDLTarget>('mysql');
   const [saveStatus, setSaveStatus] = useState<string>('');
   const [showSqlImportModal, setShowSqlImportModal] = useState(false);
+  const [showSubmodelManager, setShowSubmodelManager] = useState(false);
+
+  const activeSubmodel = useMemo(
+    () => erSubmodels.find((m) => m.id === activeSubmodelId) ?? null,
+    [erSubmodels, activeSubmodelId]
+  );
+  const visibleEntityIds = useMemo(
+    () => activeSubmodel ? new Set(activeSubmodel.entityIds) : null,
+    [activeSubmodel]
+  );
+  const visibleEntities = useMemo(
+    () => visibleEntityIds ? erEntities.filter((e) => visibleEntityIds.has(e.id)) : erEntities,
+    [erEntities, visibleEntityIds]
+  );
+  const visibleRelationships = useMemo(
+    () => visibleEntityIds
+      ? erRelationships.filter((r) => visibleEntityIds.has(r.sourceEntityId) && visibleEntityIds.has(r.targetEntityId))
+      : erRelationships,
+    [erRelationships, visibleEntityIds]
+  );
 
   // Box selection state
   const [isSelecting, setIsSelecting] = useState(false);
@@ -179,19 +208,19 @@ export default function ERDiagramEditor() {
 
   const nodes: Node[] = useMemo(
     () =>
-      erEntities.map((entity) => ({
+      visibleEntities.map((entity) => ({
         id: entity.id,
         type: 'entity',
-        position: { x: entity.x, y: entity.y },
+        position: activeSubmodel?.layout[entity.id] ?? { x: entity.x, y: entity.y },
         data: { entity },
         selected: entity.id === selectedEntityId,
       })),
-    [erEntities, selectedEntityId]
+    [visibleEntities, activeSubmodel, selectedEntityId]
   );
 
   const edges: Edge[] = useMemo(
     () =>
-      erRelationships.map((rel) => {
+      visibleRelationships.map((rel) => {
         const srcEntity = erEntities.find((e) => e.id === rel.sourceEntityId);
         const tgtEntity = erEntities.find((e) => e.id === rel.targetEntityId);
         const srcLabel = CARDINALITY_LABELS[rel.sourceCardinality] ?? rel.sourceCardinality;
@@ -228,7 +257,7 @@ export default function ERDiagramEditor() {
           },
         };
       }),
-    [erRelationships, erEntities, selectedEdgeId]
+    [visibleRelationships, erEntities, selectedEdgeId]
   );
 
   const onNodesChange: OnNodesChange = useCallback(
@@ -244,18 +273,23 @@ export default function ERDiagramEditor() {
             if (nodeEntity) {
               const newX = change.position.x;
               const newY = change.position.y;
-              updateErEntity(change.id, { x: newX, y: newY });
+              if (activeSubmodelId) setSubmodelEntityPosition(activeSubmodelId, change.id, newX, newY);
+              else updateErEntity(change.id, { x: newX, y: newY });
             }
           } else {
-            updateErEntity(change.id, {
-              x: change.position.x,
-              y: change.position.y,
-            });
+            if (activeSubmodelId) {
+              setSubmodelEntityPosition(activeSubmodelId, change.id, change.position.x, change.position.y);
+            } else {
+              updateErEntity(change.id, {
+                x: change.position.x,
+                y: change.position.y,
+              });
+            }
           }
         }
       }
     },
-    [updateErEntity, multiSelectedIds, erEntities]
+    [updateErEntity, setSubmodelEntityPosition, activeSubmodelId, multiSelectedIds, erEntities]
   );
 
   // Auto-create FK in target entity when connecting
@@ -392,20 +426,22 @@ export default function ERDiagramEditor() {
     const data = createEmptyProject('CaseTool Project');
     data.erEntities = erEntities;
     data.erRelationships = erRelationships;
+    data.erSubmodels = erSubmodels;
     saveToLocal(data);
     setSaveStatus('✅ 已儲存到本地');
     setTimeout(() => setSaveStatus(''), 2000);
-  }, [erEntities, erRelationships]);
+  }, [erEntities, erRelationships, erSubmodels]);
 
   // Export to file
   const handleExportFile = useCallback(async () => {
     const data = createEmptyProject('CaseTool Project');
     data.erEntities = erEntities;
     data.erRelationships = erRelationships;
+    data.erSubmodels = erSubmodels;
     await saveToFile(data);
     setSaveStatus('✅ 已匯出檔案');
     setTimeout(() => setSaveStatus(''), 2000);
-  }, [erEntities, erRelationships]);
+  }, [erEntities, erRelationships, erSubmodels]);
 
   // Import from file
   const handleImportFile = useCallback(async () => {
@@ -418,17 +454,18 @@ export default function ERDiagramEditor() {
       for (const rel of data.erRelationships) {
         addErRelationship(rel);
       }
+      setErSubmodels(data.erSubmodels ?? []);
       setSaveStatus('✅ 已匯入檔案');
       setTimeout(() => setSaveStatus(''), 2000);
     }
-  }, [addErEntity, addErRelationship]);
+  }, [addErEntity, addErRelationship, setErSubmodels]);
 
   // Generate DDL SQL locally
   const handleExportSQL = useCallback(() => {
-    const result = generateDDL(erEntities, ddlTarget);
+    const result = generateDDL(visibleEntities, ddlTarget);
     setSqlOutput(result.ddl);
     setShowSqlModal(true);
-  }, [erEntities, ddlTarget]);
+  }, [visibleEntities, ddlTarget]);
 
   // Copy SQL to clipboard
   const handleCopySQL = useCallback(() => {
@@ -477,13 +514,59 @@ export default function ERDiagramEditor() {
       y: 100 + Math.floor(count / 4) * 250,
       fields: [defaultField],
     });
-  }, [erEntities, addErEntity]);
+    if (activeSubmodelId) toggleEntityInSubmodel(activeSubmodelId, id);
+  }, [erEntities, addErEntity, activeSubmodelId, toggleEntityInSubmodel]);
+
+  const handleCreateSubmodel = useCallback(() => {
+    const name = window.prompt('Submodel 名稱，例如：雲端資料庫');
+    if (!name?.trim()) return;
+    const type = (window.prompt('類型：deployment / domain / service / reporting / custom', 'deployment') || 'custom') as any;
+    const id = generateId('submodel');
+    addErSubmodel({
+      id,
+      name: name.trim(),
+      type: ['deployment', 'domain', 'service', 'reporting', 'custom'].includes(type) ? type : 'custom',
+      description: '',
+      entityIds: [],
+      layout: {},
+    });
+    setShowSubmodelManager(true);
+  }, [addErSubmodel]);
+
+  const handleRenameSubmodel = useCallback(() => {
+    if (!activeSubmodel) return;
+    const name = window.prompt('Submodel 名稱', activeSubmodel.name);
+    if (name?.trim()) updateErSubmodel(activeSubmodel.id, { name: name.trim() });
+  }, [activeSubmodel, updateErSubmodel]);
+
+  const handleDeleteSubmodel = useCallback(() => {
+    if (!activeSubmodel) return;
+    if (window.confirm(`刪除 Submodel「${activeSubmodel.name}」？Entity 本身不會被刪除。`)) {
+      removeErSubmodel(activeSubmodel.id);
+      setShowSubmodelManager(false);
+    }
+  }, [activeSubmodel, removeErSubmodel]);
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', minHeight: 0 }}>
       <div style={{ flex: 1, position: 'relative' }}>
         {/* Toolbar */}
         <div className="er-toolbar">
+          <select
+            className="submodel-select"
+            value={activeSubmodelId ?? ''}
+            onChange={(e) => setActiveSubmodelId(e.target.value || null)}
+            title="切換 ER Submodel"
+          >
+            <option value="">🌐 全部模型</option>
+            {erSubmodels.map((m) => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </select>
+          <button className="btn btn-sm" onClick={handleCreateSubmodel}>＋ Submodel</button>
+          {activeSubmodel && (
+            <button className="btn btn-sm" onClick={() => setShowSubmodelManager(true)}>⚙ 管理</button>
+          )}
           <button className="btn btn-primary btn-sm" onClick={handleAddEntity}>
             + 新增 Entity
           </button>
@@ -546,7 +629,7 @@ export default function ERDiagramEditor() {
           )}
           {saveStatus && <span className="save-status">{saveStatus}</span>}
           <span className="er-toolbar-info">
-            {erEntities.length} entities, {erRelationships.length} relationships
+            {visibleEntities.length} entities, {visibleRelationships.length} relationships
           </span>
         </div>
 
@@ -664,6 +747,37 @@ export default function ERDiagramEditor() {
               <button className="btn btn-danger btn-sm" onClick={handleDeleteRelationship}>
                 🗑️ 刪除
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSubmodelManager && activeSubmodel && (
+        <div className="modal-overlay" onClick={() => setShowSubmodelManager(false)}>
+          <div className="modal submodel-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <span>Submodel：{activeSubmodel.name}</span>
+              <button className="btn btn-xs" onClick={() => setShowSubmodelManager(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="submodel-actions">
+                <button className="btn btn-sm" onClick={handleRenameSubmodel}>✏️ 重新命名</button>
+                <button className="btn btn-danger btn-sm" onClick={handleDeleteSubmodel}>🗑️ 刪除 Submodel</button>
+              </div>
+              <p className="submodel-hint">勾選要顯示在此 Submodel 的 Entity。同一個 Entity 可以同時屬於多個 Submodel。</p>
+              <div className="submodel-entity-list">
+                {erEntities.map((entity) => (
+                  <label key={entity.id} className="submodel-entity-item">
+                    <input
+                      type="checkbox"
+                      checked={activeSubmodel.entityIds.includes(entity.id)}
+                      onChange={() => toggleEntityInSubmodel(activeSubmodel.id, entity.id)}
+                    />
+                    <span>{entity.name}</span>
+                  </label>
+                ))}
+                {erEntities.length === 0 && <div className="req-empty">目前沒有 Entity</div>}
+              </div>
             </div>
           </div>
         </div>
