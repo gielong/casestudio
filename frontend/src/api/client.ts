@@ -66,6 +66,19 @@ export interface ERField {
   notes: string;
 }
 
+export interface ERIndex {
+  id: string;
+  name: string;
+  fieldIds: string[];
+  isUnique: boolean;
+}
+
+export interface ERAlternateKey {
+  id: string;
+  name: string;
+  fieldIds: string[];
+}
+
 export interface EREntity {
   id: string;
   name: string;
@@ -74,6 +87,8 @@ export interface EREntity {
   x: number;
   y: number;
   fields: ERField[];
+  indexes?: ERIndex[];
+  alternateKeys?: ERAlternateKey[];
 }
 
 export type Cardinality = 'ZeroOrOne' | 'One' | 'ZeroOrMany' | 'Many';
