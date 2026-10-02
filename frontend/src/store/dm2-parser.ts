@@ -8,6 +8,7 @@ export interface DM2ImportResult {
 }
 
 const TYPE_MAP: Record<number, string> = {
+  10: 'CHAR',
   20: 'VARCHAR',
   25: 'NVARCHAR',
   30: 'INT',
@@ -15,6 +16,7 @@ const TYPE_MAP: Record<number, string> = {
   100: 'DECIMAL',
   150: 'BIT',
   160: 'DATETIME',
+  170: 'SMALLDATETIME',
   185: 'UNIQUEIDENTIFIER',
 };
 
