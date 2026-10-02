@@ -13,6 +13,7 @@ const TYPE_MAP: Record<number, string> = {
   100: 'DECIMAL',
   150: 'BIT',
   160: 'DATETIME',
+  185: 'UNIQUEIDENTIFIER',
 };
 
 function u32(view: DataView, offset: number) { return view.getUint32(offset, true); }
