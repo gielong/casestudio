@@ -116,7 +116,7 @@ function App() {
               </button>
             ))}
           </div>
-          <div className="sidebar-version">v2026.10.02.008</div>
+          <div className="sidebar-version">v2026.10.02.009</div>
           <button
             className="sidebar-toggle"
             onClick={() => setSidebarOpen(!sidebarOpen)}
