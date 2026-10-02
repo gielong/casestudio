@@ -1890,3 +1890,34 @@ body {
 .field-detail-panel textarea{min-height:64px;resize:vertical}
 .relationship-row input,.relationship-row select{min-height:36px}
 .entity-notes{padding:12px!important;line-height:1.55;resize:vertical}
+
+/* Entity Designer scrolling fix v2026.10.02.017
+   One vertical scrollbar for the designer body; grid/detail no longer create
+   competing full-height scrollbars on the right edge. */
+.entity-designer{overflow:hidden}
+.entity-designer-body{
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  scrollbar-gutter:stable;
+  overscroll-behavior:contain;
+}
+.entity-grid-wrap{
+  overflow-x:auto;
+  overflow-y:visible;
+  max-height:none!important;
+  scrollbar-gutter:auto;
+}
+.field-detail-drawer{
+  max-height:none;
+  overflow:visible;
+}
+.entity-designer-body::-webkit-scrollbar{width:10px}
+.entity-designer-body::-webkit-scrollbar-track{background:transparent}
+.entity-designer-body::-webkit-scrollbar-thumb{
+  background:var(--border);border-radius:10px;border:2px solid var(--bg-surface)
+}
+.entity-designer-body::-webkit-scrollbar-thumb:hover{background:var(--text-muted)}
+@media(max-width:768px){
+  .field-detail-drawer{overflow:auto;max-height:52dvh}
+}
