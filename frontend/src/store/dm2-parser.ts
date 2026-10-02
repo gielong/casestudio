@@ -11,6 +11,7 @@ const TYPE_MAP: Record<number, string> = {
   20: 'VARCHAR',
   25: 'NVARCHAR',
   30: 'INT',
+  50: 'FLOAT',
   100: 'DECIMAL',
   150: 'BIT',
   160: 'DATETIME',
