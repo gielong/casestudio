@@ -59,7 +59,8 @@ body {
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
 }
 
 .sidebar-header {
@@ -132,8 +133,14 @@ body {
 }
 
 .main-canvas {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
   position: relative;
+}
+
+.app-layout.sidebar-collapsed .main-canvas {
+  width: 100%;
 }
 
 /* Form styles */
@@ -1426,24 +1433,35 @@ body {
   box-shadow: 0 0 0 3px var(--accent);
 }
 
-/* Sidebar Toggle Button */
+/* Sidebar footer + attached bookmark handle */
+.sidebar-version {
+  margin-top: auto;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
 .sidebar-toggle {
-  position: fixed;
+  position: absolute;
   top: var(--sidebar-toggle-top);
-  left: 0;
+  right: calc(-1 * var(--sidebar-toggle-width));
   z-index: var(--z-sidebar-toggle);
   width: var(--sidebar-toggle-width);
   height: var(--sidebar-toggle-height);
   border-radius: 0 8px 8px 0;
   background: var(--bg-surface);
   border: 1px solid var(--border);
+  border-left: 0;
   color: var(--text);
-  font-size: 20px;
+  font-size: 24px;
+  line-height: 1;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: background 0.2s, border-color 0.2s;
 }
 
 .sidebar-toggle:hover {
@@ -1451,28 +1469,30 @@ body {
   border-color: var(--accent);
 }
 
-/* Hide toggle when sidebar is visible on desktop - always show toggle, position it */
-@media (min-width: 769px) {
-  .app-layout:not(.sidebar-collapsed) .sidebar-toggle {
-    display: flex;
-    left: var(--sidebar-width);
-  }
-  .app-layout.sidebar-collapsed .sidebar-toggle {
-    display: flex;
-    left: 0;
-  }
-}
-
-/* Sidebar Hidden State */
+/* Collapsed sidebar consumes no layout width, so the canvas expands fully left. */
 .sidebar {
-  transition: transform 0.3s ease, width 0.3s ease;
+  transition: width 0.25s ease, flex-basis 0.25s ease;
 }
 
 .sidebar.hidden {
-  transform: translateX(-100%);
   width: 0 !important;
+  flex-basis: 0 !important;
   border-right: none;
-  overflow: hidden;
+  overflow: visible;
+}
+
+.sidebar.hidden .sidebar-header,
+.sidebar.hidden .nav-items,
+.sidebar.hidden .sidebar-version {
+  display: none;
+}
+
+.sidebar.hidden .sidebar-toggle {
+  position: fixed;
+  left: 0;
+  right: auto;
+  top: var(--sidebar-toggle-top);
+  border-left: 1px solid var(--border);
 }
 
 /* ==================== */
@@ -1489,11 +1509,13 @@ body {
     z-index: var(--z-sidebar);
     width: min(var(--sidebar-width), calc(100vw - var(--sidebar-mobile-gap)));
     flex-basis: auto;
-    transform: translateX(0);
+    transform: none;
+    overflow: visible;
   }
   
   .sidebar.hidden {
-    transform: translateX(-100%);
+    width: 0 !important;
+    transform: none;
   }
   
   /* Main canvas - full width on mobile */
@@ -1502,15 +1524,8 @@ body {
     height: 100vh;
   }
   
-  /* Toggle button - always visible on mobile */
   .sidebar-toggle {
     z-index: var(--z-sidebar-toggle);
-    display: flex !important;
-    left: 0;
-  }
-
-  .app-layout:not(.sidebar-collapsed) .sidebar-toggle {
-    left: min(var(--sidebar-width), calc(100vw - var(--sidebar-mobile-gap)));
   }
   
   /* Modal - full screen on mobile, z-index above sidebar and toggle */
