@@ -13,7 +13,7 @@ export default function FieldEditorModal({ entityId, onClose }: Props) {
   const { erEntities, erRelationships, updateErEntity, removeErEntity, addFieldToEntity, updateFieldInEntity, removeFieldFromEntity, addErRelationship, updateErRelationship, removeErRelationship } = useStore();
   const entity = erEntities.find(e => e.id === entityId);
   const [tab,setTab]=useState<Tab>('fields');
-  const [selectedFieldId,setSelectedFieldId]=useState<string|null>(entity?.fields[0]?.id ?? null);
+  const [selectedFieldId,setSelectedFieldId]=useState<string|null>(null);
   const selectedField=entity?.fields.find(f=>f.id===selectedFieldId);
   const related=useMemo(()=>erRelationships.filter(r=>r.sourceEntityId===entityId||r.targetEntityId===entityId),[erRelationships,entityId]);
   if(!entity) return null;
@@ -39,7 +39,7 @@ export default function FieldEditorModal({ entityId, onClose }: Props) {
           {entity.fields.map(f=><tr key={f.id} className={selectedFieldId===f.id?'selected':''} onClick={()=>setSelectedFieldId(f.id)}>
             <td>{f.isPrimaryKey?'🔑 PK':f.isForeignKey?'🔗 FK':''}</td><td>{f.name}</td><td>{f.columnName||f.name}</td><td>{f.dataType}{f.length?`(${f.length})`:''}</td><td>{!f.isNullable?'✓':''}</td><td>{f.isUnique?'✓':''}</td><td>{f.hasDefault?f.defaultValue:''}</td><td>{f.notes}</td>
           </tr>)}</tbody></table></div>
-          {selectedField&&<div className="field-detail-panel">
+          {selectedField&&<div className="field-detail-drawer"><div className="field-detail-head"><strong>✏️ 編輯欄位：{selectedField.name}</strong><button className="btn btn-xs" onClick={()=>setSelectedFieldId(null)}>✕</button></div><div className="field-detail-panel">
             <label>Name<input value={selectedField.name} onChange={e=>updateFieldInEntity(entityId,selectedField.id,{name:e.target.value})}/></label>
             <label>Column Name<input value={selectedField.columnName??selectedField.name} onChange={e=>updateFieldInEntity(entityId,selectedField.id,{columnName:e.target.value})}/></label>
             <label>Datatype<select value={selectedField.dataType} onChange={e=>updateFieldInEntity(entityId,selectedField.id,{dataType:e.target.value})}>{DATA_TYPES.map(x=><option key={x}>{x}</option>)}</select></label>
@@ -49,7 +49,7 @@ export default function FieldEditorModal({ entityId, onClose }: Props) {
             <label className="check"><input type="checkbox" checked={!selectedField.isNullable} onChange={e=>updateFieldInEntity(entityId,selectedField.id,{isNullable:!e.target.checked})}/>Not Null</label>
             <label className="check"><input type="checkbox" checked={selectedField.isUnique} onChange={e=>updateFieldInEntity(entityId,selectedField.id,{isUnique:e.target.checked})}/>Unique</label>
             <label>Description<textarea value={selectedField.notes} onChange={e=>updateFieldInEntity(entityId,selectedField.id,{notes:e.target.value})}/></label>
-          </div>}
+          </div></div>}
         </>}
         {tab==='relationships'&&<><div className="entity-toolbar"><button className="btn btn-primary btn-sm" onClick={addInformative}>＋ Informative Relationship</button></div><div className="relationship-list">{related.map(r=>{const outgoing=r.sourceEntityId===entityId; const other=erEntities.find(e=>e.id===(outgoing?r.targetEntityId:r.sourceEntityId));return <div className="relationship-row" key={r.id}><select value={r.type??'foreignKey'} onChange={e=>updateErRelationship(r.id,{type:e.target.value as 'foreignKey'|'informative'})}><option value="foreignKey">🔗 FK</option><option value="informative">┄ Informative</option></select><input value={r.name} onChange={e=>updateErRelationship(r.id,{name:e.target.value})}/><span>→</span><select value={other?.id??''} onChange={e=>updateErRelationship(r.id,outgoing?{targetEntityId:e.target.value}:{sourceEntityId:e.target.value})}>{erEntities.filter(e=>e.id!==entityId).map(e=><option value={e.id} key={e.id}>{e.name}</option>)}</select><button className="btn btn-danger btn-xs" onClick={()=>removeErRelationship(r.id)}>✕</button></div>})}</div></>}
         {tab==='notes'&&<textarea className="entity-notes" value={entity.notes} onChange={e=>updateErEntity(entityId,{notes:e.target.value})} placeholder="Entity Notes..." />}
