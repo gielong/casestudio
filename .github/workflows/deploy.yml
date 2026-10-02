@@ -1,5 +1,5 @@
 name: Deploy to GitHub Pages
-# Publishes production plus the current fix/ui-cleanup preview. Refresh: sidebar handle + version footer.
+# Publishes production plus the current feature/er-submodels preview. Refresh: ER submodels.
 
 on:
   push:
@@ -30,7 +30,7 @@ jobs:
       - name: Checkout UI preview branch
         uses: actions/checkout@v4
         with:
-          ref: fix/ui-cleanup
+          ref: feature/er-submodels
           path: preview
 
       - name: Setup Node
@@ -54,13 +54,13 @@ jobs:
           npm run build
         working-directory: preview/frontend
         env:
-          VITE_BASE_PATH: /casestudio/preview/fix/ui-cleanup/
+          VITE_BASE_PATH: /casestudio/preview/feature/er-submodels/
 
       - name: Assemble site
         run: |
-          mkdir -p site/preview/fix/ui-cleanup
+          mkdir -p site/preview/feature/er-submodels
           cp -R production/frontend/dist/. site/
-          cp -R preview/frontend/dist/. site/preview/fix/ui-cleanup/
+          cp -R preview/frontend/dist/. site/preview/feature/er-submodels/
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
