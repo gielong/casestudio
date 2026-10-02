@@ -8,6 +8,7 @@ export interface DM2ImportResult {
 }
 
 const TYPE_MAP: Record<number, string> = {
+  20: 'VARCHAR',
   25: 'NVARCHAR',
   30: 'INT',
   100: 'DECIMAL',
@@ -37,6 +38,22 @@ function readLengthString(bytes: Uint8Array, view: DataView, marker: number[], f
   const len = u32(view, p + marker.length);
   if (!len || p + marker.length + 4 + len > to) return '';
   return readCString(bytes, p + marker.length + 4, len);
+}
+
+function readStringListProperty(bytes: Uint8Array, view: DataView, marker: number[], from: number, to: number) {
+  const p = find(bytes, marker, from, to);
+  if (p < 0 || p + marker.length >= to) return '';
+  const count = bytes[p + marker.length];
+  let offset = p + marker.length + 1;
+  const lines: string[] = [];
+  for (let i = 0; i < count && offset + 4 <= to; i++) {
+    const len = u32(view, offset);
+    offset += 4;
+    if (!len || offset + len > to) break;
+    lines.push(readCString(bytes, offset, len));
+    offset += len;
+  }
+  return lines.join('\n').trim();
 }
 
 function readU32Property(bytes: Uint8Array, view: DataView, marker: number[], from: number, to: number) {
@@ -82,7 +99,9 @@ export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
     const end = recordEnd(start, allStarts, bytes.length);
     const numericId = readU32Property(bytes, view, [0x58, 0x02], start, Math.min(end, start + 96)) ?? index + 1;
     const name = readLengthString(bytes, view, [0x59, 0x02], start, Math.min(end, start + 160)) || `Entity_${numericId}`;
-    const notes = readLengthString(bytes, view, [0xfd, 0x03], start, end);
+    // Entity 備註在 CASE Studio 2 的 0x67 record 中是 EC03 + line-count + length-prefixed strings。
+    // FD03 是 Field Description，不能用來讀 Entity 備註。
+    const notes = readStringListProperty(bytes, view, [0xec, 0x03], start, end);
     const entity: EREntity = { id: `dm2-entity-${numericId}`, name, notes, x: 100 + (index % 4) * 300, y: 100 + Math.floor(index / 4) * 250, fields: [] };
     numericEntityMap.set(numericId, entity);
     return entity;
