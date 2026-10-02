@@ -1858,3 +1858,35 @@ body {
 .field-right{flex-shrink:0}
 .field-type{font-size:13px;font-weight:600}
 .field-constraints{font-size:12px}
+
+/* Entity readability + form polish v2026.10.02.015 */
+.entity-header{font-size:19px;padding:11px 15px}
+.entity-title{font-size:19px;font-weight:750;letter-spacing:.15px}
+.entity-table-name{font-size:16px;font-weight:650;margin-top:4px}
+.entity-field{font-size:15px}
+.field-name{font-size:16px;font-weight:650}
+.field-column-name{font-size:14px}
+.field-type{font-size:14px}
+.entity-designer input:not([type="checkbox"]):not([type="radio"]),
+.entity-designer select,
+.entity-designer textarea{
+  width:100%;box-sizing:border-box;background:var(--bg);
+  color:var(--text);border:1px solid var(--border);border-radius:7px;
+  padding:8px 10px;font:inherit;outline:none;
+  transition:border-color .15s,box-shadow .15s,background .15s
+}
+.entity-designer input:not([type="checkbox"]):not([type="radio"]):hover,
+.entity-designer select:hover,.entity-designer textarea:hover{border-color:var(--text-muted)}
+.entity-designer input:not([type="checkbox"]):not([type="radio"]):focus,
+.entity-designer select:focus,.entity-designer textarea:focus{
+  border-color:var(--accent);box-shadow:0 0 0 3px rgba(137,180,250,.16);
+  background:var(--bg-surface)
+}
+.entity-designer label{font-size:12px;font-weight:600;color:var(--text-muted);gap:5px}
+.entity-designer label:focus-within{color:var(--accent)}
+.entity-name-row{gap:14px}
+.entity-name-row input{font-size:15px;font-weight:600;min-height:40px}
+.field-detail-panel input,.field-detail-panel select{min-height:36px}
+.field-detail-panel textarea{min-height:64px;resize:vertical}
+.relationship-row input,.relationship-row select{min-height:36px}
+.entity-notes{padding:12px!important;line-height:1.55;resize:vertical}
