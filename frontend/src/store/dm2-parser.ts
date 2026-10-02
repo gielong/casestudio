@@ -209,16 +209,32 @@ export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
         y = rawY;
       }
     }
-    sm.layout[entity.id] = { x, y };
+    // CASE Studio 2 uses a denser canvas than the web editor. Expand imported
+    // coordinates to 200% so large entities do not overlap after rendering.
+    sm.layout[entity.id] = { x: x * 2, y: y * 2 };
   });
 
   let submodels = [...numericSubmodelMap.values()];
-  // CASE Studio's "Main model" represents the global model, which our UI already exposes as 全部模型.
-  submodels = submodels.filter(sm => sm.name.toLowerCase() !== 'main model');
+
+  // The UI represents CASE Studio's "Main model" as 全部模型 rather than a separate
+  // submodel. Preserve its imported layout by copying those coordinates to the
+  // entities' global x/y before removing the duplicate Main model entry.
+  const mainModel = submodels.find(sm => sm.name.trim().toLowerCase() === 'main model');
+  if (mainModel) {
+    for (const entity of entities) {
+      const pos = mainModel.layout[entity.id];
+      if (pos) {
+        entity.x = pos.x;
+        entity.y = pos.y;
+      }
+    }
+  }
+  submodels = submodels.filter(sm => sm.name.trim().toLowerCase() !== 'main model');
 
   if (relStarts.length && relationships.length !== relStarts.length) warnings.push(`偵測到 ${relStarts.length} 個 Relationship，成功匯入 ${relationships.length} 個。`);
-  const layoutCount = submodels.reduce((sum, sm) => sum + Object.keys(sm.layout).length, 0);
-  warnings.push(`Layout：已還原 ${layoutCount} 個 Entity/Submodel 位置。`);
+  const mainLayoutCount = mainModel ? Object.keys(mainModel.layout).length : 0;
+  const submodelLayoutCount = submodels.reduce((sum, sm) => sum + Object.keys(sm.layout).length, 0);
+  warnings.push(`Layout：Main Model ${mainLayoutCount} 個、Submodel ${submodelLayoutCount} 個位置；匯入座標已放大 200%。`);
   warnings.push('Nullable、Identity 與部分舊版 DM2 屬性仍在補強；已支援 Description/備註與可解析的 Relationship/FK。');
   return { entities, relationships, submodels, warnings };
 }
