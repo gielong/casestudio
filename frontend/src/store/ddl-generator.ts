@@ -77,18 +77,18 @@ export function generateDDL(entities: EREntity[], target: DDLTarget): DDLResult 
       continue;
     }
 
-    lines.push(`CREATE TABLE ${q(entity.name)} (`);
+    lines.push(`CREATE TABLE ${q(entity.tableName ?? entity.name)} (`);
     const fieldDefs: string[] = [];
     const pkFields: string[] = [];
 
     for (const field of entity.fields) {
-      let def = `  ${q(field.name)} ${mapType(field, target)}`;
+      let def = `  ${q(field.columnName ?? field.name)} ${mapType(field, target)}`;
       if (!field.isNullable) def += ' NOT NULL';
       if (field.isUnique && !field.isPrimaryKey) def += ' UNIQUE';
       if (field.hasDefault && field.defaultValue) {
         def += ` DEFAULT ${field.defaultValue}`;
       }
-      if (field.isPrimaryKey) pkFields.push(q(field.name));
+      if (field.isPrimaryKey) pkFields.push(q(field.columnName ?? field.name));
       fieldDefs.push(def);
     }
 
@@ -98,7 +98,28 @@ export function generateDDL(entities: EREntity[], target: DDLTarget): DDLResult 
     }
 
     lines.push(fieldDefs.join(',\n'));
-    lines.push(');\n');
+    lines.push(');');
+
+    // Alternate keys are modeled as UNIQUE constraints.
+    for (const ak of entity.alternateKeys ?? []) {
+      const cols = ak.fieldIds.map(id => entity.fields.find(f => f.id === id)).filter((f): f is ERField => !!f);
+      if (cols.length !== ak.fieldIds.length || !cols.length) {
+        warnings.push(`Alternate Key "${ak.name}" in "${entity.name}" has invalid/no columns.`);
+        continue;
+      }
+      lines.push(`ALTER TABLE ${q(entity.tableName ?? entity.name)} ADD CONSTRAINT ${q(ak.name)} UNIQUE (${cols.map(f => q(f.columnName ?? f.name)).join(', ')});`);
+    }
+
+    // Secondary indexes.
+    for (const index of entity.indexes ?? []) {
+      const cols = index.fieldIds.map(id => entity.fields.find(f => f.id === id)).filter((f): f is ERField => !!f);
+      if (cols.length !== index.fieldIds.length || !cols.length) {
+        warnings.push(`Index "${index.name}" in "${entity.name}" has invalid/no columns.`);
+        continue;
+      }
+      lines.push(`CREATE ${index.isUnique ? 'UNIQUE ' : ''}INDEX ${q(index.name)} ON ${q(entity.tableName ?? entity.name)} (${cols.map(f => q(f.columnName ?? f.name)).join(', ')});`);
+    }
+    lines.push('');
   }
 
   // Foreign keys as ALTER TABLE
@@ -108,9 +129,9 @@ export function generateDDL(entities: EREntity[], target: DDLTarget): DDLResult 
       const refEntity = entities.find(e => e.id === fk.referencedEntity);
       const refField = refEntity?.fields.find(f => f.id === fk.referencedField);
       if (refEntity && refField) {
-        lines.push(`ALTER TABLE ${q(entity.name)}`);
+        lines.push(`ALTER TABLE ${q(entity.tableName ?? entity.name)}`);
         lines.push(`  ADD CONSTRAINT ${q(`FK_${entity.name}_${fk.name}`)}`);
-        lines.push(`  FOREIGN KEY (${q(fk.name)}) REFERENCES ${q(refEntity.name)}(${q(refField.name)});`);
+        lines.push(`  FOREIGN KEY (${q(fk.columnName ?? fk.name)}) REFERENCES ${q(refEntity.tableName ?? refEntity.name)}(${q(refField.columnName ?? refField.name)});`);
         lines.push('');
       } else {
         warnings.push(`FK "${fk.name}" in "${entity.name}" has invalid reference.`);
