@@ -181,25 +181,27 @@ export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
   // only accept references that resolve to known objects.
   membershipStarts.forEach((start) => {
     const end = recordEnd(start, allStarts, bytes.length);
-    const values: number[] = [];
-    for (let p = start + 4; p + 6 <= Math.min(end, start + 96); p++) {
-      if (bytes[p] === 0x58 && bytes[p + 1] === 0x02) values.push(u32(view, p + 2));
-      if (bytes[p] === 0xe8 && bytes[p + 1] === 0x03) values.push(u32(view, p + 2));
-    }
-    const smId = values.find(v => numericSubmodelMap.has(v));
-    const entityId = values.find(v => numericEntityMap.has(v) && v !== smId);
+    // Confirmed CASE Studio 2 0x73 layout record:
+    // E803 = submodel id, E903 = entity id, EA03 = X + Y (two adjacent uint32 values).
+    const smId = readU32Property(bytes, view, [0xe8, 0x03], start, Math.min(end, start + 128));
+    const entityId = readU32Property(bytes, view, [0xe9, 0x03], start, Math.min(end, start + 128));
     if (smId == null || entityId == null) return;
-    const sm = numericSubmodelMap.get(smId)!;
-    const entity = numericEntityMap.get(entityId)!;
+    const sm = numericSubmodelMap.get(smId);
+    const entity = numericEntityMap.get(entityId);
+    if (!sm || !entity) return;
     if (!sm.entityIds.includes(entity.id)) sm.entityIds.push(entity.id);
 
-    // CASE Studio membership records carry the view-local X/Y as adjacent 32-bit values.
-    // Until every legacy variant is known, fall back to the main model position if not plausible.
-    const nums: number[] = [];
-    for (let p = start + 4; p + 4 <= Math.min(end, start + 128); p += 4) nums.push(u32(view, p));
-    const plausible = nums.filter(v => v < 100000);
-    const x = plausible.length >= 2 ? plausible[plausible.length - 2] : entity.x;
-    const y = plausible.length >= 1 ? plausible[plausible.length - 1] : entity.y;
+    const coord = find(bytes, [0xea, 0x03], start, Math.min(end, start + 160));
+    let x = entity.x;
+    let y = entity.y;
+    if (coord >= 0 && coord + 10 <= end) {
+      const rawX = u32(view, coord + 2);
+      const rawY = u32(view, coord + 6);
+      if (rawX < 100000 && rawY < 100000) {
+        x = rawX;
+        y = rawY;
+      }
+    }
     sm.layout[entity.id] = { x, y };
   });
 
