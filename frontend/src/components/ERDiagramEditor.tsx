@@ -85,6 +85,8 @@ export default function ERDiagramEditor() {
   const [saveStatus, setSaveStatus] = useState<string>('');
   const [showSqlImportModal, setShowSqlImportModal] = useState(false);
   const [showSubmodelManager, setShowSubmodelManager] = useState(false);
+  const [dm2Report, setDm2Report] = useState<string | null>(null);
+  const [pendingDm2, setPendingDm2] = useState<Awaited<ReturnType<typeof pickAndParseDM2>>>(null);
 
   const activeSubmodel = useMemo(
     () => erSubmodels.find((m) => m.id === activeSubmodelId) ?? null,
@@ -468,24 +470,45 @@ export default function ERDiagramEditor() {
       if (!picked) return;
       const { fileName, result } = picked;
       const fieldCount = result.entities.reduce((sum, entity) => sum + entity.fields.length, 0);
-      const warningText = result.warnings.length
-        ? `\n\n目前限制：\n- ${result.warnings.join('\n- ')}`
-        : '';
-      const ok = window.confirm(
-        `DM2 解析完成：${fileName}\n\nEntity：${result.entities.length}\nField：${fieldCount}\nRelationship：${result.relationships.length}${warningText}\n\n確定匯入到目前 ER 模型？`
-      );
-      if (!ok) return;
-
-      result.entities.forEach(addErEntity);
-      result.relationships.forEach(addErRelationship);
-      setErSubmodels(result.submodels);
-      setSaveStatus(`✅ 已匯入 DM2：${result.entities.length} Entity / ${fieldCount} Field`);
-      setTimeout(() => setSaveStatus(''), 3500);
+      const report = [
+        `DM2 解析報告：${fileName}`,
+        '',
+        `Entity：${result.entities.length}`,
+        `Field：${fieldCount}`,
+        `Relationship：${result.relationships.length}`,
+        `Submodel：${result.submodels.length}`,
+        '',
+        result.warnings.length ? '警告 / 尚未完全解析：' : '警告：無',
+        ...result.warnings.map((warning) => `- ${warning}`),
+      ].join('\n');
+      setPendingDm2(picked);
+      setDm2Report(report);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      window.alert(`DM2 匯入失敗：${message}`);
+      setPendingDm2(null);
+      setDm2Report(`DM2 匯入失敗\n\n${message}`);
     }
-  }, [addErEntity, addErRelationship, setErSubmodels]);
+  }, []);
+
+  const handleConfirmDM2Import = useCallback(() => {
+    if (!pendingDm2) return;
+    const { result } = pendingDm2;
+    const fieldCount = result.entities.reduce((sum, entity) => sum + entity.fields.length, 0);
+    result.entities.forEach(addErEntity);
+    result.relationships.forEach(addErRelationship);
+    setErSubmodels(result.submodels);
+    setSaveStatus(`✅ 已匯入 DM2：${result.entities.length} Entity / ${fieldCount} Field / ${result.relationships.length} Relationship`);
+    setPendingDm2(null);
+    setDm2Report(null);
+    setTimeout(() => setSaveStatus(''), 5000);
+  }, [pendingDm2, addErEntity, addErRelationship, setErSubmodels]);
+
+  const handleCopyDM2Report = useCallback(async () => {
+    if (!dm2Report) return;
+    await navigator.clipboard.writeText(dm2Report);
+    setSaveStatus('✅ DM2 解析報告已複製');
+    setTimeout(() => setSaveStatus(''), 2500);
+  }, [dm2Report]);
 
   // Generate DDL SQL locally
   const handleExportSQL = useCallback(() => {
@@ -825,6 +848,30 @@ export default function ERDiagramEditor() {
                   </label>
                 ))}
                 {erEntities.length === 0 && <div className="req-empty">目前沒有 Entity</div>}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {dm2Report && (
+        <div className="modal-overlay" onClick={() => { setDm2Report(null); setPendingDm2(null); }}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ width: 'min(720px, 92vw)' }}>
+            <div className="modal-header">
+              <span>📥 DM2 解析報告</span>
+              <button className="btn btn-xs" onClick={() => { setDm2Report(null); setPendingDm2(null); }}>✕</button>
+            </div>
+            <div className="modal-body">
+              <textarea
+                readOnly
+                value={dm2Report}
+                onFocus={(e) => e.currentTarget.select()}
+                style={{ width: '100%', minHeight: 300, resize: 'vertical', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}
+              />
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
+                <button className="btn btn-sm" onClick={handleCopyDM2Report}>📋 複製報告</button>
+                <button className="btn btn-sm" onClick={() => { setDm2Report(null); setPendingDm2(null); }}>取消</button>
+                {pendingDm2 && <button className="btn btn-primary btn-sm" onClick={handleConfirmDM2Import}>✅ 確定匯入</button>}
               </div>
             </div>
           </div>
