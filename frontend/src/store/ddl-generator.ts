@@ -92,6 +92,15 @@ export function generateDDL(entities: EREntity[], target: DDLTarget): DDLResult 
       fieldDefs.push(def);
     }
 
+    // Check constraints
+    for (const ck of entity.checkConstraints ?? []) {
+      if (!ck.name.trim() || !ck.expression.trim()) {
+        warnings.push(`Check Constraint "${ck.name || '(unnamed)'}" in "${entity.name}" is incomplete.`);
+        continue;
+      }
+      fieldDefs.push(`  CONSTRAINT ${q(ck.name)} CHECK (${ck.expression})`);
+    }
+
     // Primary key
     if (pkFields.length > 0) {
       fieldDefs.push(`  CONSTRAINT ${q(`PK_${entity.name}`)} PRIMARY KEY (${pkFields.join(', ')})`);
