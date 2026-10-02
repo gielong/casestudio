@@ -17,6 +17,7 @@ import 'reactflow/dist/style.css';
 import { useStore, generateId } from '../store/useStore';
 import { saveToLocal, loadFromLocal, saveToFile, loadFromFile, createEmptyProject } from '../store/storage';
 import { generateDDL, type DDLTarget } from '../store/ddl-generator';
+import { pickAndParseDM2 } from '../store/dm2-parser';
 import EntityNode from './EntityNode';
 import FieldEditorModal from './FieldEditorModal';
 import { SqlImportModal } from './SqlImportModal';
@@ -460,6 +461,31 @@ export default function ERDiagramEditor() {
     }
   }, [addErEntity, addErRelationship, setErSubmodels]);
 
+  // Import legacy CASE Studio 2 DM2 / ~m2 locally in the browser
+  const handleImportDM2 = useCallback(async () => {
+    try {
+      const picked = await pickAndParseDM2();
+      if (!picked) return;
+      const { fileName, result } = picked;
+      const fieldCount = result.entities.reduce((sum, entity) => sum + entity.fields.length, 0);
+      const warningText = result.warnings.length
+        ? `\n\n目前限制：\n- ${result.warnings.join('\n- ')}`
+        : '';
+      const ok = window.confirm(
+        `DM2 解析完成：${fileName}\n\nEntity：${result.entities.length}\nField：${fieldCount}\nRelationship：${result.relationships.length}${warningText}\n\n確定匯入到目前 ER 模型？`
+      );
+      if (!ok) return;
+
+      result.entities.forEach(addErEntity);
+      result.relationships.forEach(addErRelationship);
+      setSaveStatus(`✅ 已匯入 DM2：${result.entities.length} Entity / ${fieldCount} Field`);
+      setTimeout(() => setSaveStatus(''), 3500);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      window.alert(`DM2 匯入失敗：${message}`);
+    }
+  }, [addErEntity, addErRelationship]);
+
   // Generate DDL SQL locally
   const handleExportSQL = useCallback(() => {
     const result = generateDDL(visibleEntities, ddlTarget);
@@ -577,6 +603,9 @@ export default function ERDiagramEditor() {
           </button>
           <button className="btn btn-sm" onClick={() => setShowSqlImportModal(true)}>
             📥 匯入 SQL
+          </button>
+          <button className="btn btn-sm" onClick={handleImportDM2} title="匯入 CASE Studio 2 的 .dm2 / .~m2">
+            📥 匯入 DM2
           </button>
           <select
             className="ddl-target-select"
