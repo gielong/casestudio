@@ -1926,3 +1926,11 @@ body {
 .model-key-row{display:grid;grid-template-columns:minmax(180px,1fr) auto minmax(240px,2fr) 36px;gap:10px;align-items:center;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-surface)}
 .model-key-row select[multiple]{min-height:92px}
 @media(max-width:768px){.model-key-row{grid-template-columns:1fr}.model-key-row .btn{justify-self:end}}
+
+/* Model validation v2026.10.03.002 */
+.validation-modal{width:min(760px,94vw);max-height:86vh}
+.validation-list{display:flex;flex-direction:column;gap:7px}
+.validation-item{display:grid;grid-template-columns:28px 1fr;text-align:left;gap:8px;width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text);cursor:pointer}
+.validation-item:hover{background:var(--bg-surface)}
+.validation-item.error{border-left:4px solid #f38ba8}.validation-item.warning{border-left:4px solid #f9e2af}.validation-item.info{border-left:4px solid #89b4fa}
+.validation-ok{padding:28px;text-align:center;font-size:16px}
