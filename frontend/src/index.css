@@ -1934,3 +1934,7 @@ body {
 .validation-item:hover{background:var(--bg-surface)}
 .validation-item.error{border-left:4px solid #f38ba8}.validation-item.warning{border-left:4px solid #f9e2af}.validation-item.info{border-left:4px solid #89b4fa}
 .validation-ok{padding:28px;text-align:center;font-size:16px}
+
+/* Check Constraint editor v2026.10.03.003 */
+.constraint-row{display:grid;grid-template-columns:minmax(180px,1fr) minmax(300px,2fr) 36px;gap:10px;align-items:center;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-surface)}
+@media(max-width:768px){.constraint-row{grid-template-columns:1fr}.constraint-row .btn{justify-self:end}}
