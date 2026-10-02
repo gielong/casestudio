@@ -1593,3 +1593,72 @@ body {
     min-width: 140px;
   }
 }
+
+
+/* ER Submodel */
+.submodel-select {
+  min-width: 150px;
+  max-width: 220px;
+  padding: 6px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.submodel-modal {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.submodel-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.submodel-hint {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.submodel-entity-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.submodel-entity-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.submodel-entity-item:hover {
+  border-color: var(--accent);
+}
+
+.submodel-entity-item input {
+  accent-color: var(--accent);
+}
+
+@media (max-width: 768px) {
+  .er-toolbar {
+    max-width: calc(100vw - 24px);
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .submodel-select {
+    min-width: 135px;
+  }
+}
