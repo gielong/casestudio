@@ -89,15 +89,11 @@ export interface ERRelationship {
   targetLabel: string;
 }
 
-export type ERSubmodelType = 'deployment' | 'domain' | 'service' | 'reporting' | 'custom';
-
 export interface ERSubmodel {
   id: string;
   name: string;
-  type: ERSubmodelType;
   description: string;
   entityIds: string[];
-  databaseEngine?: 'mysql' | 'postgresql' | 'sqlserver' | 'sqlite';
   layout: Record<string, { x: number; y: number }>;
 }
 
