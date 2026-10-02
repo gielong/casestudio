@@ -552,21 +552,28 @@ export default function ERDiagramEditor() {
       <div style={{ flex: 1, position: 'relative' }}>
         {/* Toolbar */}
         <div className="er-toolbar">
-          <select
-            className="submodel-select"
-            value={activeSubmodelId ?? ''}
-            onChange={(e) => setActiveSubmodelId(e.target.value || null)}
-            title="切換 ER Submodel"
-          >
-            <option value="">🌐 全部模型</option>
-            {erSubmodels.map((m) => (
-              <option key={m.id} value={m.id}>{m.name}</option>
-            ))}
-          </select>
-          <button className="btn btn-sm" onClick={handleCreateSubmodel}>＋ Submodel</button>
-          {activeSubmodel && (
-            <button className="btn btn-sm" onClick={() => setShowSubmodelManager(true)}>⚙ 管理</button>
-          )}
+          <div className="submodel-menu">
+            <button className="submodel-menu-trigger" type="button">
+              <span>{activeSubmodel ? activeSubmodel.name : '🌐 全部模型'}</span>
+              <span className="submodel-menu-caret">▼</span>
+            </button>
+            <div className="submodel-menu-dropdown">
+              <button type="button" className={!activeSubmodelId ? 'active' : ''} onClick={() => setActiveSubmodelId(null)}>
+                🌐 全部模型
+              </button>
+              <div className="submodel-menu-divider" />
+              {erSubmodels.map((m) => (
+                <button key={m.id} type="button" className={activeSubmodelId === m.id ? 'active' : ''} onClick={() => setActiveSubmodelId(m.id)}>
+                  {m.type === 'reporting' ? '📊' : m.type === 'service' ? '🧩' : m.type === 'domain' ? '📦' : m.type === 'deployment' ? '🗄️' : '📁'} {m.name}
+                </button>
+              ))}
+              {erSubmodels.length > 0 && <div className="submodel-menu-divider" />}
+              <button type="button" onClick={handleCreateSubmodel}>＋ 新增 Submodel</button>
+              <button type="button" disabled={!activeSubmodel} onClick={() => activeSubmodel && setShowSubmodelManager(true)}>
+                ⚙ 管理 Submodel
+              </button>
+            </div>
+          </div>
           <button className="btn btn-primary btn-sm" onClick={handleAddEntity}>
             + 新增 Entity
           </button>
