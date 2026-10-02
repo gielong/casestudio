@@ -231,15 +231,17 @@ export default function ERDiagramEditor() {
         const srcColor = getCardinalityColor(rel.sourceCardinality);
         const tgtColor = getCardinalityColor(rel.targetCardinality);
         const isSelected = rel.id === selectedEdgeId;
+        const isInformative = rel.type === 'informative';
 
         return {
           id: rel.id,
           source: rel.sourceEntityId,
           target: rel.targetEntityId,
-          label: rel.name || `${srcLabel} : ${tgtLabel}`,
+          label: rel.name || (isInformative ? 'Informative' : `${srcLabel} : ${tgtLabel}`),
           style: {
-            stroke: isSelected ? '#f38ba8' : '#89b4fa',
-            strokeWidth: isSelected ? 3 : 2,
+            stroke: isSelected ? '#f38ba8' : (isInformative ? '#a6adc8' : '#89b4fa'),
+            strokeWidth: isSelected ? 5 : 4,
+            strokeDasharray: isInformative ? '10 7' : undefined,
           },
           labelStyle: { fill: '#cdd6f4', fontSize: 11 },
           labelBgStyle: { fill: isSelected ? '#45475a' : '#313147', fillOpacity: 0.9 },
@@ -342,6 +344,7 @@ export default function ERDiagramEditor() {
       // Create relationship
       const rel: ERRelationship = {
         id: generateId('rel'),
+        type: 'foreignKey',
         name: '',
         sourceEntityId: params.source,
         targetEntityId: params.target,
@@ -749,10 +752,11 @@ export default function ERDiagramEditor() {
       {editingRel && (
         <div className="right-panel">
           <div className="right-panel-header">
-            <span>Relationship 編輯</span>
+            <span>{editingRel.type === 'informative' ? 'Informative Relationship 編輯' : 'Relationship 編輯'}</span>
             <button className="btn btn-xs" onClick={() => { setEditingRel(null); setSelectedEdgeId(null); }}>✕</button>
           </div>
           <div className="rel-editor">
+            {editingRel.type === 'informative' && <div className="submodel-hint">ℹ️ Informative Relationship：僅表示兩個 Entity 有關聯，不建立 FK，也不產生 Foreign Key SQL。</div>}
             <div className="form-group">
               <label>名稱</label>
               <input
