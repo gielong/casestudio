@@ -1,0 +1,75 @@
+name: Deploy PR Preview
+
+on:
+  pull_request:
+    branches: [master]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  preview:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}preview/pr-${{ github.event.number }}/
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout production
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          path: production
+
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          path: preview
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: |
+            production/frontend/package-lock.json
+            preview/frontend/package-lock.json
+
+      - name: Build production
+        working-directory: production/frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build PR preview
+        working-directory: preview/frontend
+        env:
+          VITE_BASE_PATH: /casestudio/preview/pr-${{ github.event.number }}/
+        run: |
+          npm ci
+          npm run build
+
+      - name: Assemble Pages artifact
+        run: |
+          mkdir -p site/preview/pr-${{ github.event.number }}
+          cp -R production/frontend/dist/. site/
+          cp -R preview/frontend/dist/. site/preview/pr-${{ github.event.number }}/
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy preview
+        id: deployment
+        uses: actions/deploy-pages@v4
