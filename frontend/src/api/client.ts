@@ -73,6 +73,12 @@ export interface ERIndex {
   isUnique: boolean;
 }
 
+export interface ERCheckConstraint {
+  id: string;
+  name: string;
+  expression: string;
+}
+
 export interface ERAlternateKey {
   id: string;
   name: string;
@@ -89,6 +95,7 @@ export interface EREntity {
   fields: ERField[];
   indexes?: ERIndex[];
   alternateKeys?: ERAlternateKey[];
+  checkConstraints?: ERCheckConstraint[];
 }
 
 export type Cardinality = 'ZeroOrOne' | 'One' | 'ZeroOrMany' | 'Many';
