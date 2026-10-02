@@ -16,6 +16,19 @@
   --success: #a6e3a1;
   --error: #f38ba8;
   --warning: #f9e2af;
+
+  /* Layout tokens: keep dimensions and stacking order centralized here. */
+  --sidebar-width: 320px;
+  --sidebar-mobile-gap: 56px;
+  --sidebar-toggle-size: 40px;
+  --layout-gap: 10px;
+
+  --z-canvas-ui: 40;
+  --z-selection: 60;
+  --z-sidebar: 200;
+  --z-sidebar-toggle: 300;
+  --z-tooltip: 400;
+  --z-modal: 500;
 }
 
 body {
@@ -38,7 +51,8 @@ body {
 }
 
 .sidebar {
-  width: 320px;
+  width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width);
   background: var(--bg-surface);
   border-right: 1px solid var(--border);
   display: flex;
@@ -723,7 +737,7 @@ body {
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1000;
+  z-index: var(--z-tooltip);
   margin-top: 8px;
   background: var(--bg);
   border: 1px solid var(--accent);
@@ -793,7 +807,7 @@ body {
   bottom: 100%;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1000;
+  z-index: var(--z-tooltip);
   margin-bottom: 8px;
   background: var(--bg);
   border: 1px solid var(--accent);
@@ -912,7 +926,7 @@ body {
   position: absolute;
   top: 12px;
   left: 12px;
-  z-index: 100;
+  z-index: var(--z-canvas-ui);
   display: flex;
   gap: 8px;
   align-items: center;
@@ -969,7 +983,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: var(--z-modal);
 }
 
 .sql-modal {
@@ -1024,7 +1038,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: var(--z-modal);
 }
 
 .modal {
@@ -1402,7 +1416,7 @@ body {
   border: 2px dashed var(--accent);
   background: rgba(137, 180, 250, 0.15);
   pointer-events: none;
-  z-index: 1000;
+  z-index: var(--z-selection);
 }
 
 /* Multi-selected node highlight */
@@ -1415,9 +1429,9 @@ body {
   position: fixed;
   top: 10px;
   left: 10px;
-  z-index: 999;
-  width: 40px;
-  height: 40px;
+  z-index: var(--z-sidebar-toggle);
+  width: var(--sidebar-toggle-size);
+  height: var(--sidebar-toggle-size);
   border-radius: 8px;
   background: var(--bg-surface);
   border: 1px solid var(--border);
@@ -1439,11 +1453,11 @@ body {
 @media (min-width: 769px) {
   .app-layout:not(.sidebar-collapsed) .sidebar-toggle {
     display: flex;
-    left: 340px;
+    left: calc(var(--sidebar-width) + 20px);
   }
   .app-layout.sidebar-collapsed .sidebar-toggle {
     display: flex;
-    left: 10px;
+    left: var(--layout-gap);
   }
 }
 
@@ -1470,7 +1484,9 @@ body {
     left: 0;
     top: 0;
     height: 100vh;
-    z-index: 999;
+    z-index: var(--z-sidebar);
+    width: min(var(--sidebar-width), calc(100vw - var(--sidebar-mobile-gap)));
+    flex-basis: auto;
     transform: translateX(0);
   }
   
@@ -1486,13 +1502,19 @@ body {
   
   /* Toggle button - always visible on mobile */
   .sidebar-toggle {
-    z-index: 998;
+    z-index: var(--z-sidebar-toggle);
     display: flex !important;
+    left: var(--layout-gap);
+  }
+
+  .app-layout:not(.sidebar-collapsed) .sidebar-toggle {
+    left: min(calc(var(--sidebar-width) - 50px), calc(100vw - 106px));
   }
   
   /* Modal - full screen on mobile, z-index above sidebar and toggle */
-  .modal-overlay {
-    z-index: 1000;
+  .modal-overlay,
+  .sql-modal-overlay {
+    z-index: var(--z-modal);
     padding: 0;
     align-items: flex-start;
     overflow-y: auto;
@@ -1547,7 +1569,7 @@ body {
 @media (max-width: 480px) {
   /* Even smaller on very small screens */
   .sidebar {
-    width: 260px;
+    width: min(260px, calc(100vw - var(--sidebar-mobile-gap)));
   }
   
   .entity-node {
