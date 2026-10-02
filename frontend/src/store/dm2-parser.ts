@@ -141,19 +141,20 @@ export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
       if (direct?.entity.id === sourceEntity.id) sourceEntry = direct;
     }
 
+    const relationshipType: 'foreignKey' | 'informative' = targetEntry && sourceEntry ? 'foreignKey' : 'informative';
+
     if (targetEntry && sourceEntry) {
       sourceEntry.field.isPrimaryKey = true;
       targetEntry.field.isForeignKey = true;
       targetEntry.field.referencedEntity = sourceEntity.id;
       targetEntry.field.referencedField = sourceEntry.field.id;
-    } else {
-      warnings.push(`Relationship「${name}」保留 Entity 關聯線，但欄位/FK 對應未確認。`);
     }
 
     // Always preserve the entity-level relationship line. Some DM2 relationships (views,
     // conceptual links, older records) have no ED03 field binding at all.
     relationships.push({
       id: `dm2-rel-${numericRelId}-${index + 1}`,
+      type: relationshipType,
       name,
       sourceEntityId: sourceEntity.id,
       targetEntityId: targetEntity.id,
