@@ -19,6 +19,7 @@
 
   /* Layout tokens: keep dimensions and stacking order centralized here. */
   --sidebar-width: 320px;
+  --sidebar-collapsed-width: 64px;
   --sidebar-mobile-gap: 56px;
   --sidebar-toggle-width: 30px;
   --sidebar-toggle-height: 44px;
@@ -1737,4 +1738,93 @@ body {
   height: 1px;
   margin: 5px 4px;
   background: var(--border);
+}
+
+
+/* Collapsed sidebar keeps a usable icon rail. */
+.sidebar.collapsed {
+  width: var(--sidebar-collapsed-width) !important;
+  flex-basis: var(--sidebar-collapsed-width) !important;
+  overflow: hidden;
+}
+
+.sidebar.collapsed .sidebar-header {
+  min-height: 58px;
+  padding: 12px 0;
+  justify-content: center;
+}
+
+.sidebar.collapsed .sidebar-header h1 {
+  display: flex;
+  justify-content: center;
+}
+
+.sidebar.collapsed .brand-text,
+.sidebar.collapsed .sidebar-header .subtitle,
+.sidebar.collapsed .nav-label,
+.sidebar.collapsed .sidebar-version {
+  display: none;
+}
+
+.sidebar.collapsed .nav-items {
+  padding: 8px 6px;
+}
+
+.sidebar.collapsed .nav-item {
+  width: 52px;
+  height: 44px;
+  padding: 0;
+  justify-content: center;
+  gap: 0;
+}
+
+.sidebar.collapsed .nav-item.active {
+  border-left: 0;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.sidebar.collapsed .nav-icon {
+  font-size: 19px;
+}
+
+.sidebar-toggle {
+  position: static !important;
+  margin: auto 8px 10px;
+  width: auto !important;
+  height: 42px;
+  min-height: 42px;
+  border: 1px solid var(--border) !important;
+  border-radius: 7px !important;
+  background: var(--bg-input);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-sidebar-toggle);
+}
+
+.sidebar-toggle:hover {
+  border-color: var(--accent) !important;
+  color: var(--accent);
+}
+
+.sidebar.collapsed .sidebar-toggle {
+  margin: auto 6px 10px;
+  width: 52px !important;
+}
+
+/* Legacy zero-width collapse is intentionally disabled on desktop. */
+@media (min-width: 769px) {
+  .sidebar.hidden {
+    width: var(--sidebar-collapsed-width) !important;
+    flex-basis: var(--sidebar-collapsed-width) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar.collapsed {
+    width: var(--sidebar-collapsed-width) !important;
+    transform: none;
+  }
 }
