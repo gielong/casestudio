@@ -20,7 +20,9 @@
   /* Layout tokens: keep dimensions and stacking order centralized here. */
   --sidebar-width: 320px;
   --sidebar-mobile-gap: 56px;
-  --sidebar-toggle-size: 40px;
+  --sidebar-toggle-width: 30px;
+  --sidebar-toggle-height: 44px;
+  --sidebar-toggle-top: 66px;
   --layout-gap: 10px;
 
   --z-canvas-ui: 40;
@@ -1427,12 +1429,12 @@ body {
 /* Sidebar Toggle Button */
 .sidebar-toggle {
   position: fixed;
-  top: 10px;
-  left: 10px;
+  top: var(--sidebar-toggle-top);
+  left: 0;
   z-index: var(--z-sidebar-toggle);
-  width: var(--sidebar-toggle-size);
-  height: var(--sidebar-toggle-size);
-  border-radius: 8px;
+  width: var(--sidebar-toggle-width);
+  height: var(--sidebar-toggle-height);
+  border-radius: 0 8px 8px 0;
   background: var(--bg-surface);
   border: 1px solid var(--border);
   color: var(--text);
@@ -1453,11 +1455,11 @@ body {
 @media (min-width: 769px) {
   .app-layout:not(.sidebar-collapsed) .sidebar-toggle {
     display: flex;
-    left: calc(var(--sidebar-width) + 20px);
+    left: var(--sidebar-width);
   }
   .app-layout.sidebar-collapsed .sidebar-toggle {
     display: flex;
-    left: var(--layout-gap);
+    left: 0;
   }
 }
 
@@ -1504,11 +1506,11 @@ body {
   .sidebar-toggle {
     z-index: var(--z-sidebar-toggle);
     display: flex !important;
-    left: var(--layout-gap);
+    left: 0;
   }
 
   .app-layout:not(.sidebar-collapsed) .sidebar-toggle {
-    left: min(calc(var(--sidebar-width) - 50px), calc(100vw - 106px));
+    left: min(var(--sidebar-width), calc(100vw - var(--sidebar-mobile-gap)));
   }
   
   /* Modal - full screen on mobile, z-index above sidebar and toggle */
