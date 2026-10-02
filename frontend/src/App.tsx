@@ -9,6 +9,8 @@ import FlowChartEditor from './components/FlowChartEditor';
 import { useStore, type Page } from './store/useStore';
 import { loadFromLocal, createEmptyProject, saveToLocal } from './store/storage';
 
+const MOBILE_QUERY = '(max-width: 768px)';
+
 const NAV_ITEMS: { page: Page; label: string; icon: string }[] = [
   { page: 'connect', label: '連線', icon: '🔌' },
   { page: 'schema', label: '結構', icon: '🗃️' },
@@ -23,8 +25,20 @@ const NAV_ITEMS: { page: Page; label: string; icon: string }[] = [
 
 function App() {
   const { activePage, setActivePage, erEntities, erRelationships, setErEntities, setErRelationships } = useStore();
-  // Start with sidebar closed on mobile, open on desktop
-  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia(MOBILE_QUERY).matches);
+  const [sidebarOpen, setSidebarOpen] = useState(() => !window.matchMedia(MOBILE_QUERY).matches);
+
+  // Keep responsive layout state in one place instead of mixing JS pixel values with CSS.
+  useEffect(() => {
+    const media = window.matchMedia(MOBILE_QUERY);
+    const handleViewportChange = (event: MediaQueryListEvent) => {
+      setIsMobile(event.matches);
+      setSidebarOpen(!event.matches);
+    };
+
+    media.addEventListener('change', handleViewportChange);
+    return () => media.removeEventListener('change', handleViewportChange);
+  }, []);
 
   // Load from localStorage on app start
   useEffect(() => {
@@ -90,7 +104,10 @@ function App() {
               <button
                 key={item.page}
                 className={`nav-item ${activePage === item.page ? 'active' : ''}`}
-                onClick={() => setActivePage(item.page)}
+                onClick={() => {
+                  setActivePage(item.page);
+                  if (isMobile) setSidebarOpen(false);
+                }}
               >
                 <span className="nav-icon">{item.icon}</span>
                 <span className="nav-label">{item.label}</span>
@@ -103,7 +120,8 @@ function App() {
             className="sidebar-toggle"
             onClick={() => setSidebarOpen(!sidebarOpen)}
             title={sidebarOpen ? '隱藏側邊欄' : '顯示側邊欄'}
-            style={{ left: sidebarOpen ? '330px' : '10px' }}
+            aria-label={sidebarOpen ? '隱藏側邊欄' : '顯示側邊欄'}
+            aria-expanded={sidebarOpen}
           >
             ☰
           </button>
