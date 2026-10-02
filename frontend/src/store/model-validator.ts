@@ -46,6 +46,10 @@ export function validateERModel(entities: EREntity[], relationships: ERRelations
       if (!idx.fieldIds.length) add('warning', `Index「${idx.name}」沒有欄位。`, e);
       if (idx.fieldIds.some(id => !e.fields.some(f => f.id === id))) add('error', `Index「${idx.name}」包含不存在的欄位。`, e);
     }
+    for (const ck of e.checkConstraints ?? []) {
+      if (!ck.name.trim()) add('error', 'Check Constraint 名稱不可空白。', e);
+      if (!ck.expression.trim()) add('error', `Check Constraint「${ck.name || '(未命名)'}」沒有條件式。`, e);
+    }
     for (const ak of e.alternateKeys ?? []) {
       if (!ak.name.trim()) add('error', 'Alternate Key 名稱不可空白。', e);
       if (!ak.fieldIds.length) add('warning', `Alternate Key「${ak.name}」沒有欄位。`, e);
