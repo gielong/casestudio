@@ -96,9 +96,9 @@ function App() {
   return (
     <ReactFlowProvider>
       <div className={`app-layout ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
-        <nav className={`sidebar ${sidebarOpen ? '' : 'hidden'}`}>
+        <nav className={`sidebar ${sidebarOpen ? '' : 'collapsed'}`}>
           <div className="sidebar-header">
-            <h1>🗂️ CaseTool</h1>
+            <h1><span className="brand-icon">🗂️</span><span className="brand-text">CaseTool</span></h1>
             <span className="subtitle">CASE 開發輔助工具</span>
           </div>
           <div className="nav-items">
@@ -124,7 +124,7 @@ function App() {
             aria-label={sidebarOpen ? '隱藏側邊欄' : '顯示側邊欄'}
             aria-expanded={sidebarOpen}
           >
-            {sidebarOpen ? '‹' : '›'}
+            {sidebarOpen ? '◀️' : '▶️'}
           </button>
         </nav>
         <main className="main-canvas">
