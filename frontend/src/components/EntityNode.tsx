@@ -44,8 +44,9 @@ const FieldRow = memo(function FieldRow({ field }: { field: ERField }) {
         <span className="field-icon">
           {field.isPrimaryKey ? '🔑' : field.isForeignKey ? '🔗' : '·'}
         </span>
-        <span className="field-name" style={{ color: getTypeColor(field) }}>
-          {field.name}
+        <span className="field-name-wrap">
+          <span className="field-name" style={{ color: getTypeColor(field) }}>{field.name}</span>
+          {field.columnName && field.columnName !== field.name && <span className="field-column-name">{field.columnName}</span>}
         </span>
       </div>
       <div className="field-right">
@@ -79,7 +80,8 @@ function EntityNode({ data, selected }: NodeProps<{ entity: EREntity }>) {
         onMouseLeave={() => setShowTooltip(false)}
         style={{ cursor: entity.notes ? 'help' : 'default' }}
       >
-        {entity.name}
+        <div className="entity-title">{entity.name}</div>
+        {entity.tableName && entity.tableName !== entity.name && <div className="entity-table-name">{entity.tableName}</div>}
         {showTooltip && entity.notes && (
           <div className="entity-tooltip">
             {entity.notes}
