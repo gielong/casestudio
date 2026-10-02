@@ -1,5 +1,5 @@
 name: Deploy to GitHub Pages
-# Publishes production plus the current feature/er-submodels preview. Refresh: unified submodel dropdown..
+# Publishes production plus the current feature/er-submodels preview. Refresh: icon rail + simplified submodels.
 
 on:
   push:
