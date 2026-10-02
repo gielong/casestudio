@@ -1844,3 +1844,17 @@ body {
 .field-detail-drawer .field-detail-panel label:last-child{grid-column:span 2}
 .entity-grid th,.entity-grid td{padding:6px 8px}
 @media(max-width:768px){.field-detail-drawer{position:fixed;left:0;right:0;bottom:0;z-index:20;max-height:52dvh;border-radius:14px 14px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.35)}.field-detail-drawer .field-detail-panel{grid-template-columns:1fr 1fr}.field-detail-drawer .field-detail-panel label:last-child{grid-column:1/-1}}
+
+/* ER canvas readability v2026.10.02.013 */
+.entity-node{min-width:300px}
+.entity-header{padding:10px 14px;font-size:16px;line-height:1.25}
+.entity-title{font-weight:700}
+.entity-table-name{margin-top:3px;font-size:14px;font-weight:600;opacity:.82}
+.entity-field{padding:7px 12px;font-size:14px;gap:12px}
+.field-left{min-width:0;flex:1}
+.field-name-wrap{display:flex;flex-direction:column;min-width:0}
+.field-name{font-size:14px;font-weight:600;line-height:1.2}
+.field-column-name{font-size:13px;line-height:1.2;color:var(--text-muted);margin-top:2px}
+.field-right{flex-shrink:0}
+.field-type{font-size:13px;font-weight:600}
+.field-constraints{font-size:12px}
