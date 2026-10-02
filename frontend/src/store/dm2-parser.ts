@@ -76,17 +76,20 @@ export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
   if (!entityStarts.length || !fieldStarts.length) throw new Error('找不到 CASE Studio 2 的 Entity / Field records。');
 
   const numericEntityMap = new Map<number, EREntity>();
+  const numericFieldMap = new Map<number, { entity: EREntity; field: ERField; relationId: number | null; referencedFieldNumericId: number | null }>();
   const entities = entityStarts.map((start, index) => {
     const end = recordEnd(start, allStarts, bytes.length);
     const numericId = readU32Property(bytes, view, [0x58, 0x02], start, Math.min(end, start + 96)) ?? index + 1;
     const name = readLengthString(bytes, view, [0x59, 0x02], start, Math.min(end, start + 160)) || `Entity_${numericId}`;
-    const entity: EREntity = { id: `dm2-entity-${numericId}`, name, notes: '', x: 100 + (index % 4) * 300, y: 100 + Math.floor(index / 4) * 250, fields: [] };
+    const notes = readLengthString(bytes, view, [0xfd, 0x03], start, end);
+    const entity: EREntity = { id: `dm2-entity-${numericId}`, name, notes, x: 100 + (index % 4) * 300, y: 100 + Math.floor(index / 4) * 250, fields: [] };
     numericEntityMap.set(numericId, entity);
     return entity;
   });
 
   fieldStarts.forEach((start, index) => {
     const end = recordEnd(start, allStarts, bytes.length);
+    const numericFieldId = readU32Property(bytes, view, [0x58, 0x02], start, Math.min(end, start + 32)) ?? index + 1;
     const parentId = readU32Property(bytes, view, [0xe8, 0x03], start, Math.min(end, start + 220));
     const entity = parentId == null ? undefined : numericEntityMap.get(parentId);
     if (!entity) { warnings.push(`略過無法對應 Entity 的 Field record @ ${start}`); return; }
@@ -101,9 +104,55 @@ export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
       length: dataType === 'NVARCHAR' ? lp : null, precision: dataType === 'DECIMAL' ? lp : null,
       scale: dataType === 'DECIMAL' ? scale : null, isPrimaryKey: false, isForeignKey: false,
       isNullable: true, isUnique: false, hasDefault: !!defaultValue, defaultValue,
-      referencedEntity: '', referencedField: '', notes: '',
+      referencedEntity: '', referencedField: '', notes: readLengthString(bytes, view, [0xfd, 0x03], start, end),
     };
     entity.fields.push(field);
+    numericFieldMap.set(numericFieldId, {
+      entity,
+      field,
+      relationId: readU32Property(bytes, view, [0xed, 0x03], start, Math.min(end, start + 180)),
+      referencedFieldNumericId: readU32Property(bytes, view, [0xee, 0x03], start, Math.min(end, start + 180)),
+    });
+  });
+
+  const relationships: ERRelationship[] = [];
+  relStarts.forEach((start, index) => {
+    const end = recordEnd(start, allStarts, bytes.length);
+    const numericRelId = readU32Property(bytes, view, [0x58, 0x02], start, Math.min(end, start + 48)) ?? index + 1;
+    const name = readLengthString(bytes, view, [0x59, 0x02], start, Math.min(end, start + 180)) || `Relationship_${numericRelId}`;
+    const sourceEntityNumericId = readU32Property(bytes, view, [0xe8, 0x03], start, Math.min(end, start + 120));
+    const targetEntityNumericId = readU32Property(bytes, view, [0xe9, 0x03], start, Math.min(end, start + 120));
+    if (sourceEntityNumericId == null || targetEntityNumericId == null) return;
+    const sourceEntity = numericEntityMap.get(sourceEntityNumericId);
+    const targetEntity = numericEntityMap.get(targetEntityNumericId);
+    if (!sourceEntity || !targetEntity) return;
+
+    // CASE Studio 2 stores FK linkage on the target field: ED03 = relationship id,
+    // EE03 = referenced/source field numeric id. This is confirmed by test(2).dm2.
+    const targetEntry = [...numericFieldMap.values()].find(x => x.entity.id === targetEntity.id && x.relationId === numericRelId);
+    const sourceEntry = targetEntry?.referencedFieldNumericId != null ? numericFieldMap.get(targetEntry.referencedFieldNumericId) : undefined;
+    if (!targetEntry || !sourceEntry) {
+      warnings.push(`Relationship「${name}」已找到 Entity，但找不到欄位對應。`);
+      return;
+    }
+
+    sourceEntry.field.isPrimaryKey = true;
+    targetEntry.field.isForeignKey = true;
+    targetEntry.field.referencedEntity = sourceEntity.id;
+    targetEntry.field.referencedField = sourceEntry.field.id;
+
+    relationships.push({
+      id: `dm2-rel-${numericRelId}`,
+      name,
+      sourceEntityId: sourceEntity.id,
+      targetEntityId: targetEntity.id,
+      sourceFieldId: sourceEntry.field.id,
+      targetFieldId: targetEntry.field.id,
+      sourceCardinality: 'One',
+      targetCardinality: 'Many',
+      sourceLabel: '',
+      targetLabel: '',
+    });
   });
 
   const numericSubmodelMap = new Map<number, ERSubmodel>();
@@ -146,9 +195,9 @@ export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
   // CASE Studio's "Main model" represents the global model, which our UI already exposes as 全部模型.
   submodels = submodels.filter(sm => sm.name.toLowerCase() !== 'main model');
 
-  if (relStarts.length) warnings.push(`偵測到 ${relStarts.length} 個 Relationship record；FK/Relationship 對應仍在逆向中。`);
-  warnings.push('PK、FK、Nullable、Identity、Description 與 Relationship 尚未完全解碼；未確認的屬性不會猜測匯入。');
-  return { entities, relationships: [], submodels, warnings };
+  if (relStarts.length && relationships.length !== relStarts.length) warnings.push(`偵測到 ${relStarts.length} 個 Relationship，成功匯入 ${relationships.length} 個。`);
+  warnings.push('Nullable、Identity 與部分舊版 DM2 屬性仍在補強；已支援 Description/備註與可解析的 Relationship/FK。');
+  return { entities, relationships, submodels, warnings };
 }
 
 export async function pickAndParseDM2(): Promise<{ fileName: string; result: DM2ImportResult } | null> {
