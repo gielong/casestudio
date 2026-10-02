@@ -93,6 +93,7 @@ export interface ERSubmodel {
   id: string;
   name: string;
   description: string;
+  backgroundColor?: string;
   entityIds: string[];
   layout: Record<string, { x: number; y: number }>;
 }
