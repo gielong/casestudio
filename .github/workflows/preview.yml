@@ -1,9 +1,8 @@
 name: Deploy PR Preview
 
 on:
-  pull_request:
-    branches: [master]
-    types: [opened, synchronize, reopened]
+  push:
+    branches-ignore: [master]
 
 permissions:
   contents: read
@@ -16,10 +15,9 @@ concurrency:
 
 jobs:
   preview:
-    if: github.event.pull_request.head.repo.full_name == github.repository
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}preview/pr-${{ github.event.number }}/
+      url: ${{ steps.deployment.outputs.page_url }}preview/${{ github.ref_name }}/
     runs-on: ubuntu-latest
     steps:
       - name: Checkout production
@@ -51,16 +49,16 @@ jobs:
       - name: Build PR preview
         working-directory: preview/frontend
         env:
-          VITE_BASE_PATH: /casestudio/preview/pr-${{ github.event.number }}/
+          VITE_BASE_PATH: /casestudio/preview/${{ github.ref_name }}/
         run: |
           npm ci
           npm run build
 
       - name: Assemble Pages artifact
         run: |
-          mkdir -p site/preview/pr-${{ github.event.number }}
+          mkdir -p site/preview/${{ github.ref_name }}
           cp -R production/frontend/dist/. site/
-          cp -R preview/frontend/dist/. site/preview/pr-${{ github.event.number }}/
+          cp -R preview/frontend/dist/. site/preview/${{ github.ref_name }}/
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
