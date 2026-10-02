@@ -478,13 +478,14 @@ export default function ERDiagramEditor() {
 
       result.entities.forEach(addErEntity);
       result.relationships.forEach(addErRelationship);
+      setErSubmodels(result.submodels);
       setSaveStatus(`✅ 已匯入 DM2：${result.entities.length} Entity / ${fieldCount} Field`);
       setTimeout(() => setSaveStatus(''), 3500);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       window.alert(`DM2 匯入失敗：${message}`);
     }
-  }, [addErEntity, addErRelationship]);
+  }, [addErEntity, addErRelationship, setErSubmodels]);
 
   // Generate DDL SQL locally
   const handleExportSQL = useCallback(() => {
@@ -551,6 +552,7 @@ export default function ERDiagramEditor() {
       id,
       name: name.trim(),
       description: '',
+      backgroundColor: '#1e1e2e',
       entityIds: [],
       layout: {},
     });
@@ -573,7 +575,7 @@ export default function ERDiagramEditor() {
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', minHeight: 0 }}>
-      <div style={{ flex: 1, position: 'relative' }}>
+      <div style={{ flex: 1, position: 'relative', background: activeSubmodel?.backgroundColor ?? 'var(--bg-base)' }}>
         {/* Toolbar */}
         <div className="er-toolbar">
           <div className="submodel-menu">
@@ -797,6 +799,18 @@ export default function ERDiagramEditor() {
               <div className="submodel-actions">
                 <button className="btn btn-sm" onClick={handleRenameSubmodel}>✏️ 重新命名</button>
                 <button className="btn btn-danger btn-sm" onClick={handleDeleteSubmodel}>🗑️ 刪除 Submodel</button>
+              </div>
+              <div className="form-group" style={{ marginTop: 12 }}>
+                <label>🎨 背景顏色</label>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <input
+                    type="color"
+                    value={activeSubmodel.backgroundColor ?? '#1e1e2e'}
+                    onChange={(e) => updateErSubmodel(activeSubmodel.id, { backgroundColor: e.target.value })}
+                    style={{ width: 54, height: 34, padding: 2 }}
+                  />
+                  <code>{activeSubmodel.backgroundColor ?? '#1e1e2e'}</code>
+                </div>
               </div>
               <p className="submodel-hint">勾選要顯示在此 Submodel 的 Entity。同一個 Entity 可以同時屬於多個 Submodel。</p>
               <div className="submodel-entity-list">
