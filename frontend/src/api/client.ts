@@ -50,6 +50,7 @@ export interface Diagram {
 export interface ERField {
   id: string;
   name: string;
+  columnName?: string;
   dataType: string;
   length: number | null;
   precision: number | null;
@@ -68,6 +69,7 @@ export interface ERField {
 export interface EREntity {
   id: string;
   name: string;
+  tableName?: string;
   notes: string;
   x: number;
   y: number;
