@@ -78,6 +78,7 @@ export type Cardinality = 'ZeroOrOne' | 'One' | 'ZeroOrMany' | 'Many';
 
 export interface ERRelationship {
   id: string;
+  type?: 'foreignKey' | 'informative';
   name: string;
   sourceEntityId: string;
   targetEntityId: string;
