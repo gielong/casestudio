@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useStore, generateId } from '../store/useStore';
 import type { ERField, ERRelationship } from '../api/client';
 
@@ -15,6 +15,16 @@ export default function FieldEditorModal({ entityId, onClose }: Props) {
   const [tab,setTab]=useState<Tab>('fields');
   const [selectedFieldId,setSelectedFieldId]=useState<string|null>(null);
   const selectedField=entity?.fields.find(f=>f.id===selectedFieldId);
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      e.stopPropagation();
+      onClose();
+    };
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
+  }, [onClose]);
   const related=useMemo(()=>erRelationships.filter(r=>r.sourceEntityId===entityId||r.targetEntityId===entityId),[erRelationships,entityId]);
   if(!entity) return null;
 
