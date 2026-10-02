@@ -114,8 +114,7 @@ function App() {
               </button>
             ))}
           </div>
-        </nav>
-        <main className="main-canvas">
+          <div className="sidebar-version">v2026.10.02.001</div>
           <button
             className="sidebar-toggle"
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -123,8 +122,10 @@ function App() {
             aria-label={sidebarOpen ? '隱藏側邊欄' : '顯示側邊欄'}
             aria-expanded={sidebarOpen}
           >
-            ☰
+            {sidebarOpen ? '‹' : '›'}
           </button>
+        </nav>
+        <main className="main-canvas">
           {renderContent()}
         </main>
       </div>
