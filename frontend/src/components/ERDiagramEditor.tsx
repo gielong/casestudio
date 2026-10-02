@@ -18,6 +18,7 @@ import { useStore, generateId } from '../store/useStore';
 import { saveToLocal, loadFromLocal, saveToFile, loadFromFile, createEmptyProject } from '../store/storage';
 import { generateDDL, type DDLTarget } from '../store/ddl-generator';
 import { pickAndParseDM2 } from '../store/dm2-parser';
+import { validateERModel } from '../store/model-validator';
 import EntityNode from './EntityNode';
 import FieldEditorModal from './FieldEditorModal';
 import { SqlImportModal } from './SqlImportModal';
@@ -87,6 +88,8 @@ export default function ERDiagramEditor() {
   const [showSubmodelManager, setShowSubmodelManager] = useState(false);
   const [dm2Report, setDm2Report] = useState<string | null>(null);
   const [pendingDm2, setPendingDm2] = useState<Awaited<ReturnType<typeof pickAndParseDM2>>>(null);
+  const [validationOpen, setValidationOpen] = useState(false);
+  const validationIssues = useMemo(() => validateERModel(erEntities, erRelationships), [erEntities, erRelationships]);
 
   const activeSubmodel = useMemo(
     () => erSubmodels.find((m) => m.id === activeSubmodelId) ?? null,
@@ -647,6 +650,9 @@ export default function ERDiagramEditor() {
           <button className="btn btn-sm" onClick={handleExportSQL}>
             📤 匯出 SQL
           </button>
+          <button className="btn btn-sm" onClick={() => setValidationOpen(true)} title="檢查 PK、FK、型別、重複名稱、Index 與 Alternate Key">
+            🩺 模型檢查 {validationIssues.length ? `(${validationIssues.length})` : '✓'}
+          </button>
           <button className="btn btn-sm" onClick={handleSave}>
             💾 儲存
           </button>
@@ -877,6 +883,18 @@ export default function ERDiagramEditor() {
                 <button className="btn btn-sm" onClick={() => { setDm2Report(null); setPendingDm2(null); }}>取消</button>
                 {pendingDm2 && <button className="btn btn-primary btn-sm" onClick={handleConfirmDM2Import}>✅ 確定匯入</button>}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {validationOpen && (
+        <div className="modal-overlay" onClick={() => setValidationOpen(false)}>
+          <div className="modal validation-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header"><span>🩺 Model Validation</span><button className="btn btn-xs" onClick={() => setValidationOpen(false)}>✕</button></div>
+            <div className="modal-body">
+              {validationIssues.length === 0 ? <div className="validation-ok">✅ 未發現模型問題</div> :
+                <div className="validation-list">{validationIssues.map((issue,i)=><button key={i} className={`validation-item ${issue.severity}`} onClick={()=>{if(issue.entityId){setSelectedEntityId(issue.entityId);setEditingEntityId(issue.entityId);setValidationOpen(false)}}}><span>{issue.severity==='error'?'⛔':issue.severity==='warning'?'⚠️':'ℹ️'}</span><span><strong>{issue.entityName ? issue.entityName+' — ' : ''}</strong>{issue.message}</span></button>)}</div>}
             </div>
           </div>
         </div>
