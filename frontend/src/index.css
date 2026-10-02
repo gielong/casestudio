@@ -1921,3 +1921,8 @@ body {
 @media(max-width:768px){
   .field-detail-drawer{overflow:auto;max-height:52dvh}
 }
+
+/* Index / Alternate Key editor v2026.10.03.001 */
+.model-key-row{display:grid;grid-template-columns:minmax(180px,1fr) auto minmax(240px,2fr) 36px;gap:10px;align-items:center;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-surface)}
+.model-key-row select[multiple]{min-height:92px}
+@media(max-width:768px){.model-key-row{grid-template-columns:1fr}.model-key-row .btn{justify-self:end}}
