@@ -520,12 +520,10 @@ export default function ERDiagramEditor() {
   const handleCreateSubmodel = useCallback(() => {
     const name = window.prompt('Submodel 名稱，例如：雲端資料庫');
     if (!name?.trim()) return;
-    const type = (window.prompt('類型：deployment / domain / service / reporting / custom', 'deployment') || 'custom') as any;
     const id = generateId('submodel');
     addErSubmodel({
       id,
       name: name.trim(),
-      type: ['deployment', 'domain', 'service', 'reporting', 'custom'].includes(type) ? type : 'custom',
       description: '',
       entityIds: [],
       layout: {},
@@ -564,7 +562,7 @@ export default function ERDiagramEditor() {
               <div className="submodel-menu-divider" />
               {erSubmodels.map((m) => (
                 <button key={m.id} type="button" className={activeSubmodelId === m.id ? 'active' : ''} onClick={() => setActiveSubmodelId(m.id)}>
-                  {m.type === 'reporting' ? '📊' : m.type === 'service' ? '🧩' : m.type === 'domain' ? '📦' : m.type === 'deployment' ? '🗄️' : '📁'} {m.name}
+                  📁 {m.name}
                 </button>
               ))}
               {erSubmodels.length > 0 && <div className="submodel-menu-divider" />}
