@@ -16,6 +16,21 @@
   --success: #a6e3a1;
   --error: #f38ba8;
   --warning: #f9e2af;
+
+  /* Layout tokens: keep dimensions and stacking order centralized here. */
+  --sidebar-width: 320px;
+  --sidebar-mobile-gap: 56px;
+  --sidebar-toggle-width: 30px;
+  --sidebar-toggle-height: 44px;
+  --sidebar-toggle-top: 66px;
+  --layout-gap: 10px;
+
+  --z-canvas-ui: 40;
+  --z-selection: 60;
+  --z-sidebar: 200;
+  --z-sidebar-toggle: 300;
+  --z-tooltip: 400;
+  --z-modal: 500;
 }
 
 body {
@@ -38,12 +53,14 @@ body {
 }
 
 .sidebar {
-  width: 320px;
+  width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width);
   background: var(--bg-surface);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
 }
 
 .sidebar-header {
@@ -116,8 +133,14 @@ body {
 }
 
 .main-canvas {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
   position: relative;
+}
+
+.app-layout.sidebar-collapsed .main-canvas {
+  width: 100%;
 }
 
 /* Form styles */
@@ -723,7 +746,7 @@ body {
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1000;
+  z-index: var(--z-tooltip);
   margin-top: 8px;
   background: var(--bg);
   border: 1px solid var(--accent);
@@ -793,7 +816,7 @@ body {
   bottom: 100%;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1000;
+  z-index: var(--z-tooltip);
   margin-bottom: 8px;
   background: var(--bg);
   border: 1px solid var(--accent);
@@ -912,7 +935,7 @@ body {
   position: absolute;
   top: 12px;
   left: 12px;
-  z-index: 100;
+  z-index: var(--z-canvas-ui);
   display: flex;
   gap: 8px;
   align-items: center;
@@ -969,7 +992,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: var(--z-modal);
 }
 
 .sql-modal {
@@ -1024,7 +1047,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: var(--z-modal);
 }
 
 .modal {
@@ -1402,7 +1425,7 @@ body {
   border: 2px dashed var(--accent);
   background: rgba(137, 180, 250, 0.15);
   pointer-events: none;
-  z-index: 1000;
+  z-index: var(--z-selection);
 }
 
 /* Multi-selected node highlight */
@@ -1410,24 +1433,35 @@ body {
   box-shadow: 0 0 0 3px var(--accent);
 }
 
-/* Sidebar Toggle Button */
+/* Sidebar footer + attached bookmark handle */
+.sidebar-version {
+  margin-top: auto;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
 .sidebar-toggle {
-  position: fixed;
-  top: 10px;
-  left: 10px;
-  z-index: 999;
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+  position: absolute;
+  top: var(--sidebar-toggle-top);
+  right: calc(-1 * var(--sidebar-toggle-width));
+  z-index: var(--z-sidebar-toggle);
+  width: var(--sidebar-toggle-width);
+  height: var(--sidebar-toggle-height);
+  border-radius: 0 8px 8px 0;
   background: var(--bg-surface);
   border: 1px solid var(--border);
+  border-left: 0;
   color: var(--text);
-  font-size: 20px;
+  font-size: 24px;
+  line-height: 1;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: background 0.2s, border-color 0.2s;
 }
 
 .sidebar-toggle:hover {
@@ -1435,28 +1469,30 @@ body {
   border-color: var(--accent);
 }
 
-/* Hide toggle when sidebar is visible on desktop - always show toggle, position it */
-@media (min-width: 769px) {
-  .app-layout:not(.sidebar-collapsed) .sidebar-toggle {
-    display: flex;
-    left: 340px;
-  }
-  .app-layout.sidebar-collapsed .sidebar-toggle {
-    display: flex;
-    left: 10px;
-  }
-}
-
-/* Sidebar Hidden State */
+/* Collapsed sidebar consumes no layout width, so the canvas expands fully left. */
 .sidebar {
-  transition: transform 0.3s ease, width 0.3s ease;
+  transition: width 0.25s ease, flex-basis 0.25s ease;
 }
 
 .sidebar.hidden {
-  transform: translateX(-100%);
   width: 0 !important;
+  flex-basis: 0 !important;
   border-right: none;
-  overflow: hidden;
+  overflow: visible;
+}
+
+.sidebar.hidden .sidebar-header,
+.sidebar.hidden .nav-items,
+.sidebar.hidden .sidebar-version {
+  display: none;
+}
+
+.sidebar.hidden .sidebar-toggle {
+  position: fixed;
+  left: 0;
+  right: auto;
+  top: var(--sidebar-toggle-top);
+  border-left: 1px solid var(--border);
 }
 
 /* ==================== */
@@ -1470,12 +1506,16 @@ body {
     left: 0;
     top: 0;
     height: 100vh;
-    z-index: 999;
-    transform: translateX(0);
+    z-index: var(--z-sidebar);
+    width: min(var(--sidebar-width), calc(100vw - var(--sidebar-mobile-gap)));
+    flex-basis: auto;
+    transform: none;
+    overflow: visible;
   }
   
   .sidebar.hidden {
-    transform: translateX(-100%);
+    width: 0 !important;
+    transform: none;
   }
   
   /* Main canvas - full width on mobile */
@@ -1484,15 +1524,14 @@ body {
     height: 100vh;
   }
   
-  /* Toggle button - always visible on mobile */
   .sidebar-toggle {
-    z-index: 998;
-    display: flex !important;
+    z-index: var(--z-sidebar-toggle);
   }
   
   /* Modal - full screen on mobile, z-index above sidebar and toggle */
-  .modal-overlay {
-    z-index: 1000;
+  .modal-overlay,
+  .sql-modal-overlay {
+    z-index: var(--z-modal);
     padding: 0;
     align-items: flex-start;
     overflow-y: auto;
@@ -1547,7 +1586,7 @@ body {
 @media (max-width: 480px) {
   /* Even smaller on very small screens */
   .sidebar {
-    width: 260px;
+    width: min(260px, calc(100vw - var(--sidebar-mobile-gap)));
   }
   
   .entity-node {

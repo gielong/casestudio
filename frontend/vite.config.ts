@@ -6,7 +6,8 @@ export default defineConfig({
   server: {
     port: 5173,
   },
-  base: '/casestudio/',
+  // Branch previews override this path in GitHub Actions; production keeps /casestudio/.
+  base: process.env.VITE_BASE_PATH || '/casestudio/',
   build: {
     outDir: 'dist',
   },
