@@ -27,6 +27,8 @@ function App() {
   const { activePage, setActivePage, erEntities, erRelationships, erSubmodels, setErEntities, setErRelationships, setErSubmodels } = useStore();
   const [isMobile, setIsMobile] = useState(() => window.matchMedia(MOBILE_QUERY).matches);
   const [sidebarOpen, setSidebarOpen] = useState(() => !window.matchMedia(MOBILE_QUERY).matches);
+  const [lastSavedSnapshot, setLastSavedSnapshot] = useState('');
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   // Keep responsive layout state in one place instead of mixing JS pixel values with CSS.
   useEffect(() => {
@@ -49,6 +51,7 @@ function App() {
         setErRelationships(saved.erRelationships);
       }
       setErSubmodels(saved.erSubmodels ?? []);
+      setLastSavedSnapshot(JSON.stringify({ entities: saved.erEntities, relationships: saved.erRelationships, submodels: saved.erSubmodels ?? [] }));
     } else {
       // Save initial empty project to localStorage
       const empty = createEmptyProject('case-studio');
@@ -64,9 +67,28 @@ function App() {
       data.erRelationships = erRelationships;
       data.erSubmodels = erSubmodels;
       saveToLocal(data);
+      setLastSavedSnapshot(JSON.stringify({ entities: erEntities, relationships: erRelationships, submodels: erSubmodels }));
     }, 1000);
     return () => clearTimeout(timeout);
   }, [erEntities, erRelationships, erSubmodels]);
+
+  const currentSnapshot = JSON.stringify({ entities: erEntities, relationships: erRelationships, submodels: erSubmodels });
+  const hasUnsavedChanges = lastSavedSnapshot !== '' && currentSnapshot !== lastSavedSnapshot;
+
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (hasUnsavedChanges) {
+        setShowExitConfirm(true);
+      } else if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+    };
+    window.addEventListener('keydown', handleEscape, true);
+    return () => window.removeEventListener('keydown', handleEscape, true);
+  }, [hasUnsavedChanges]);
 
   const renderContent = useCallback(() => {
     switch (activePage) {
@@ -116,7 +138,7 @@ function App() {
               </button>
             ))}
           </div>
-          <div className="sidebar-version">v2026.10.02.012</div>
+          <div className="sidebar-version">v2026.10.02.013</div>
           <button
             className="sidebar-toggle"
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -130,6 +152,22 @@ function App() {
         <main className="main-canvas">
           {renderContent()}
         </main>
+        {showExitConfirm && (
+          <div className="modal-overlay" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="modal" style={{ maxWidth: 440 }}>
+              <h3>尚有修改</h3>
+              <p>目前內容尚未完成自動儲存。要先儲存再退出目前操作嗎？</p>
+              <div className="modal-actions">
+                <button className="btn btn-primary" onClick={() => {
+                  const data = createEmptyProject('case-studio');
+                  data.erEntities = erEntities; data.erRelationships = erRelationships; data.erSubmodels = erSubmodels;
+                  saveToLocal(data); setLastSavedSnapshot(currentSnapshot); setShowExitConfirm(false);
+                }}>💾 儲存</button>
+                <button className="btn" onClick={() => setShowExitConfirm(false)}>取消（不退出）</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </ReactFlowProvider>
   );
