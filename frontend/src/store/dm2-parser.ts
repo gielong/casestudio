@@ -185,6 +185,13 @@ export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
     // E803 = submodel id, E903 = entity id, EA03 = X + Y (two adjacent uint32 values).
     const smId = readU32Property(bytes, view, [0xe8, 0x03], start, Math.min(end, start + 128));
     const entityId = readU32Property(bytes, view, [0xe9, 0x03], start, Math.min(end, start + 128));
+    // EB03 identifies the kind of diagram object stored in a 0x73 record.
+    // vPOS confirms EB03=0 is an Entity placement; EB03=3 records reuse E903
+    // for other diagram objects and often carry (0,0), which previously overwrote
+    // the real Entity coordinates.
+    const objectKindPos = find(bytes, [0xeb, 0x03], start, Math.min(end, start + 160));
+    const objectKind = objectKindPos >= 0 && objectKindPos + 2 < end ? bytes[objectKindPos + 2] : 0;
+    if (objectKind !== 0) return;
     if (smId == null || entityId == null) return;
     const sm = numericSubmodelMap.get(smId);
     const entity = numericEntityMap.get(entityId);
@@ -210,6 +217,8 @@ export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
   submodels = submodels.filter(sm => sm.name.toLowerCase() !== 'main model');
 
   if (relStarts.length && relationships.length !== relStarts.length) warnings.push(`偵測到 ${relStarts.length} 個 Relationship，成功匯入 ${relationships.length} 個。`);
+  const layoutCount = submodels.reduce((sum, sm) => sum + Object.keys(sm.layout).length, 0);
+  warnings.push(`Layout：已還原 ${layoutCount} 個 Entity/Submodel 位置。`);
   warnings.push('Nullable、Identity 與部分舊版 DM2 屬性仍在補強；已支援 Description/備註與可解析的 Relationship/FK。');
   return { entities, relationships, submodels, warnings };
 }
