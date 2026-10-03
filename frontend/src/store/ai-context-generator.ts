@@ -1,11 +1,14 @@
 import type { EREntity, ERRelationship, ERSubmodel } from '../api/client';
 
 export type AIContextScope = 'all' | 'submodel' | 'selected';
+export type AIContextDepth = 0 | 1 | 2 | 'all';
 
 export interface AIContextOptions {
   scope: AIContextScope;
   selectedEntityId?: string | null;
   activeSubmodel?: ERSubmodel | null;
+  depth?: AIContextDepth;
+  compact?: boolean;
 }
 
 function typeOf(f: EREntity['fields'][number]) {
@@ -14,19 +17,50 @@ function typeOf(f: EREntity['fields'][number]) {
   return f.dataType;
 }
 
-export function selectAIContextEntities(entities: EREntity[], options: AIContextOptions) {
-  if (options.scope === 'selected') return entities.filter(e => e.id === options.selectedEntityId);
-  if (options.scope === 'submodel' && options.activeSubmodel) {
+export function selectAIContextEntities(entities: EREntity[], relationships: ERRelationship[], options: AIContextOptions) {
+  let seed: EREntity[];
+  if (options.scope === 'selected') seed = entities.filter(e => e.id === options.selectedEntityId);
+  else if (options.scope === 'submodel' && options.activeSubmodel) {
     const ids = new Set(options.activeSubmodel.entityIds);
-    return entities.filter(e => ids.has(e.id));
+    seed = entities.filter(e => ids.has(e.id));
+  } else seed = entities;
+
+  if (options.scope !== 'selected' || options.depth === 0 || !seed.length) return seed;
+  const included = new Set(seed.map(e => e.id));
+  const maxDepth = options.depth === 'all' ? Number.MAX_SAFE_INTEGER : options.depth ?? 1;
+  let frontier = new Set(included);
+  for (let level = 0; level < maxDepth && frontier.size; level++) {
+    const next = new Set<string>();
+    for (const r of relationships) {
+      if (frontier.has(r.sourceEntityId) && !included.has(r.targetEntityId)) next.add(r.targetEntityId);
+      if (frontier.has(r.targetEntityId) && !included.has(r.sourceEntityId)) next.add(r.sourceEntityId);
+    }
+    next.forEach(id => included.add(id));
+    frontier = next;
   }
-  return entities;
+  return entities.filter(e => included.has(e.id));
 }
 
 export function generateAIContextMarkdown(entities: EREntity[], relationships: ERRelationship[], options: AIContextOptions): string {
-  const selected = selectAIContextEntities(entities, options);
+  const selected = selectAIContextEntities(entities, relationships, options);
   const ids = new Set(selected.map(e => e.id));
   const rels = relationships.filter(r => ids.has(r.sourceEntityId) && ids.has(r.targetEntityId));
+  if (options.compact) {
+    const lines = ['# CASE Studio DB Context (compact)'];
+    for (const e of selected) {
+      lines.push(`T|${e.tableName || e.name}|${e.name}|${e.purpose ?? ''}`);
+      for (const f of e.fields) {
+        let ref = '';
+        if (f.isForeignKey) {
+          const re = entities.find(x => x.id === f.referencedEntity), rf = re?.fields.find(x => x.id === f.referencedField);
+          if (re && rf) ref = `|FK=${re.tableName || re.name}.${rf.columnName || rf.name}`;
+        }
+        lines.push(`F|${f.columnName || f.name}|${typeOf(f)}|${f.isPrimaryKey?'PK':''}${!f.isNullable?'!':''}${ref}|${f.notes || ''}`);
+      }
+      if (e.businessRules?.trim()) lines.push(`BR|${e.businessRules.trim().replace(/\\n/g, ' ; ')}`);
+    }
+    return lines.join('\\n');
+  }
   const lines = ['# CASE Studio Database Context', '', `Scope: ${options.scope === 'submodel' ? options.activeSubmodel?.name ?? 'Submodel' : options.scope === 'selected' ? 'Selected Entity' : 'All Model'}`, `Entities: ${selected.length}`, ''];
   for (const e of selected) {
     lines.push(`## ${e.name}`, `Physical Table: ${e.tableName || e.name}`);
@@ -61,7 +95,7 @@ export function generateAIContextMarkdown(entities: EREntity[], relationships: E
 }
 
 export function generateAIContextJSON(entities: EREntity[], relationships: ERRelationship[], options: AIContextOptions): string {
-  const selected = selectAIContextEntities(entities, options);
+  const selected = selectAIContextEntities(entities, relationships, options);
   const ids = new Set(selected.map(e => e.id));
   return JSON.stringify({
     format: 'CASEStudio-AI-Context',
