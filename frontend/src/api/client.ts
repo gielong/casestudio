@@ -90,6 +90,9 @@ export interface EREntity {
   name: string;
   tableName?: string;
   notes: string;
+  comments?: string;
+  purpose?: string;
+  businessRules?: string;
   x: number;
   y: number;
   fields: ERField[];
