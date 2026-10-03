@@ -144,10 +144,12 @@ export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
   const warnings: string[] = [];
   const entityStarts = recordStarts(bytes, 0x67);
   const fieldStarts = recordStarts(bytes, 0x68);
+  const indexStarts = recordStarts(bytes, 0x69);
+  const indexColumnStarts = recordStarts(bytes, 0x6a);
   const relStarts = recordStarts(bytes, 0x6b);
   const submodelStarts = recordStarts(bytes, 0x71);
   const membershipStarts = recordStarts(bytes, 0x73);
-  const allStarts = [...entityStarts, ...fieldStarts, ...relStarts, ...submodelStarts, ...membershipStarts].sort((a,b)=>a-b);
+  const allStarts = [...entityStarts, ...fieldStarts, ...indexStarts, ...indexColumnStarts, ...relStarts, ...submodelStarts, ...membershipStarts].sort((a,b)=>a-b);
 
   if (!entityStarts.length || !fieldStarts.length) throw new Error('找不到 CASE Studio 2 的 Entity / Field records。');
 
@@ -179,8 +181,9 @@ export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
     const dataType = TYPE_MAP[typeCode] ?? `DM2_TYPE_${typeCode}`;
     const field: ERField = {
       id: `dm2-field-${parentId}-${index + 1}`, name, dataType,
-      length: dataType === 'NVARCHAR' ? lp : null, precision: dataType === 'DECIMAL' ? lp : null,
-      scale: dataType === 'DECIMAL' ? scale : null, isPrimaryKey: false, isForeignKey: false,
+      length: ['CHAR','VARCHAR','NCHAR','NVARCHAR','VARBINARY'].includes(dataType) ? lp : null,
+      precision: ['DECIMAL','NUMERIC'].includes(dataType) ? lp : null,
+      scale: ['DECIMAL','NUMERIC'].includes(dataType) ? scale : null, isPrimaryKey: false, isForeignKey: false,
       isNullable: true, isUnique: false, hasDefault: !!defaultValue, defaultValue,
       referencedEntity: '', referencedField: '', notes: readLengthString(bytes, view, [0xfd, 0x03], start, end),
     };
@@ -192,6 +195,38 @@ export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
       referencedFieldNumericId: readU32Property(bytes, view, [0xee, 0x03], start, Math.min(end, start + 180)),
     });
   });
+
+  // CASE Studio 2: 0x69 = Index definition, 0x6A = ordered Index column.
+  // Confirmed across vPOS / WEBERP / ERP samples. Unknown 0x69 flags are deliberately
+  // not interpreted as Unique/Clustered until their semantics are proven.
+  const parsedIndexes = new Map<number, { entity: EREntity; name: string; columns: { fieldId: number; order: number }[] }>();
+  indexStarts.forEach((start, index) => {
+    const end = recordEnd(start, allStarts, bytes.length);
+    const numericIndexId = readU32Property(bytes, view, [0x58, 0x02], start, Math.min(end, start + 96)) ?? index + 1;
+    const name = readLengthString(bytes, view, [0x59, 0x02], start, Math.min(end, start + 180)) || `Index_${numericIndexId}`;
+    const entityNumericId = readU32Property(bytes, view, [0xe8, 0x03], start, Math.min(end, start + 180));
+    const entity = entityNumericId == null ? undefined : numericEntityMap.get(entityNumericId);
+    if (!entity) { warnings.push(`略過無法對應 Entity 的 Index "${name}" @ ${start}`); return; }
+    parsedIndexes.set(numericIndexId, { entity, name, columns: [] });
+  });
+
+  indexColumnStarts.forEach((start) => {
+    const end = recordEnd(start, allStarts, bytes.length);
+    const indexId = readU32Property(bytes, view, [0xe8, 0x03], start, Math.min(end, start + 160));
+    const fieldId = readU32Property(bytes, view, [0xe9, 0x03], start, Math.min(end, start + 160));
+    const order = readU32Property(bytes, view, [0xea, 0x03], start, Math.min(end, start + 160)) ?? 0;
+    if (indexId == null || fieldId == null) return;
+    const idx = parsedIndexes.get(indexId);
+    if (idx) idx.columns.push({ fieldId, order });
+  });
+
+  let importedIndexCount = 0;
+  for (const idx of parsedIndexes.values()) {
+    const fieldIds = idx.columns.sort((a,b)=>a.order-b.order).map(col => numericFieldMap.get(col.fieldId)).filter((x): x is NonNullable<typeof x> => !!x && x.entity.id === idx.entity.id).map(x => x.field.id);
+    if (!fieldIds.length) { warnings.push(`Index "${idx.name}" 找不到可解析的欄位，已略過。`); continue; }
+    idx.entity.indexes = [...(idx.entity.indexes ?? []), { id: `dm2-index-${importedIndexCount + 1}`, name: idx.name, fieldIds, isUnique: false }];
+    importedIndexCount++;
+  }
 
   const relationships: ERRelationship[] = [];
   relStarts.forEach((start, index) => {
@@ -327,7 +362,8 @@ export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
   const mainLayoutCount = mainModel ? Object.keys(mainModel.layout).length : 0;
   const submodelLayoutCount = submodels.reduce((sum, sm) => sum + Object.keys(sm.layout).length, 0);
   warnings.push(`Layout：Main Model ${mainLayoutCount} 個、Submodel ${submodelLayoutCount} 個原始位置；缺少座標的 Entity 已依 Relationship 自動產生放射狀 Layout，DM2 原始座標維持優先且放大 200%。`);
-  warnings.push('Nullable、Identity 與部分舊版 DM2 屬性仍在補強；已支援 Description/備註與可解析的 Relationship/FK。');
+  warnings.push(`Index：偵測到 ${indexStarts.length} 個 Index、${indexColumnStarts.length} 個 Index Column，成功匯入 ${importedIndexCount} 個；Unique/Clustered flag 尚未確認，因此目前不猜測。`);
+  warnings.push('Length / Precision / Scale 已依確認的 F203 / F303 屬性解析；Nullable、Identity 與部分舊版 DM2 屬性仍在補強。');
   return { entities, relationships, submodels, warnings };
 }
 
