@@ -95,15 +95,15 @@ export default function ERDiagramEditor() {
   const [aiContextFormat, setAIContextFormat] = useState<'markdown'|'compact'|'json'>('markdown');
   const [aiContextDepth, setAIContextDepth] = useState<AIContextDepth>(1);
   const validationIssues = useMemo(() => validateERModel(erEntities, erRelationships), [erEntities, erRelationships]);
-  const aiContext = useMemo(() => {
-    const options = { scope: aiContextScope, selectedEntityId, activeSubmodel, depth: aiContextDepth, compact: aiContextFormat === 'compact' };
-    return aiContextFormat === 'json' ? generateAIContextJSON(erEntities, erRelationships, options) : generateAIContextMarkdown(erEntities, erRelationships, options);
-  }, [aiContextScope, aiContextFormat, aiContextDepth, erEntities, erRelationships, selectedEntityId, activeSubmodel]);
 
   const activeSubmodel = useMemo(
     () => erSubmodels.find((m) => m.id === activeSubmodelId) ?? null,
     [erSubmodels, activeSubmodelId]
   );
+  const aiContext = useMemo(() => {
+    const options = { scope: aiContextScope, selectedEntityId, activeSubmodel, depth: aiContextDepth, compact: aiContextFormat === 'compact' };
+    return aiContextFormat === 'json' ? generateAIContextJSON(erEntities, erRelationships, options) : generateAIContextMarkdown(erEntities, erRelationships, options);
+  }, [aiContextScope, aiContextFormat, aiContextDepth, erEntities, erRelationships, selectedEntityId, activeSubmodel]);
   const visibleEntityIds = useMemo(
     () => activeSubmodel ? new Set(activeSubmodel.entityIds) : null,
     [activeSubmodel]
