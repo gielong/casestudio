@@ -1944,3 +1944,14 @@ body {
 .sql-export-options label{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600}
 .sql-export-options .ddl-target-select{min-width:210px}
 @media(max-width:768px){.sql-export-options label{align-items:stretch;flex-direction:column}.sql-export-options .ddl-target-select{width:100%}}
+
+/* AI Context v2026.10.03.005 */
+.ai-context-modal{width:min(920px,95vw);max-height:90vh}
+.ai-context-options{display:flex;gap:14px;margin-bottom:12px;flex-wrap:wrap}
+.ai-context-options label{display:flex;align-items:center;gap:8px;font-weight:600}
+.ai-context-options select{min-width:210px}
+.ai-context-output{width:100%;min-height:430px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;line-height:1.5;white-space:pre}
+.ai-semantic-editor{display:grid;gap:16px;padding:16px}
+.ai-semantic-editor label{display:grid;gap:7px;font-weight:600}
+.ai-semantic-editor textarea{min-height:150px;resize:vertical}
+@media(max-width:768px){.ai-context-options,.ai-context-options label{flex-direction:column;align-items:stretch}.ai-context-options select{width:100%}.ai-context-output{min-height:50dvh}}
