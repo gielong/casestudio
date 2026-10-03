@@ -2,8 +2,10 @@
 import type { EREntity, ERRelationship, ERSubmodel } from '../api/client';
 
 const STORAGE_KEY = 'case-tool-data';
+export const CURRENT_SCHEMA_VERSION = 1;
 
 export interface ProjectData {
+  schemaVersion: number;
   version: string;
   name: string;
   description: string;
@@ -21,6 +23,7 @@ export interface ProjectData {
 
 export function createEmptyProject(name = 'Untitled Project'): ProjectData {
   return {
+    schemaVersion: CURRENT_SCHEMA_VERSION,
     version: '1.0.0',
     name,
     description: '',
@@ -37,6 +40,28 @@ export function createEmptyProject(name = 'Untitled Project'): ProjectData {
   };
 }
 
+export function migrateProject(input: Partial<ProjectData> & Record<string, unknown>): ProjectData {
+  const base = createEmptyProject(typeof input.name === 'string' ? input.name : 'Imported Project');
+  const entities = Array.isArray(input.erEntities) ? input.erEntities : [];
+  return {
+    ...base,
+    ...input,
+    schemaVersion: CURRENT_SCHEMA_VERSION,
+    erEntities: entities.map((entity: any) => ({
+      ...entity,
+      notes: entity.notes ?? '',
+      comments: entity.comments ?? '',
+      purpose: entity.purpose ?? '',
+      businessRules: entity.businessRules ?? '',
+      indexes: entity.indexes ?? [],
+      alternateKeys: entity.alternateKeys ?? [],
+      checkConstraints: entity.checkConstraints ?? [],
+    })),
+    erRelationships: Array.isArray(input.erRelationships) ? input.erRelationships : [],
+    erSubmodels: Array.isArray(input.erSubmodels) ? input.erSubmodels : [],
+  } as ProjectData;
+}
+
 // Save to localStorage
 export function saveToLocal(data: ProjectData): void {
   data.updatedAt = new Date().toISOString();
@@ -48,7 +73,7 @@ export function loadFromLocal(): ProjectData | null {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as ProjectData;
+    return migrateProject(JSON.parse(raw));
   } catch {
     return null;
   }
@@ -94,7 +119,7 @@ export async function loadFromFile(): Promise<ProjectData | null> {
       });
       const file = await handle.getFile();
       const text = await file.text();
-      return JSON.parse(text) as ProjectData;
+      return migrateProject(JSON.parse(text));
     } catch {
       return null;
     }
@@ -111,7 +136,7 @@ export async function loadFromFile(): Promise<ProjectData | null> {
       const reader = new FileReader();
       reader.onload = () => {
         try {
-          resolve(JSON.parse(reader.result as string) as ProjectData);
+          resolve(migrateProject(JSON.parse(reader.result as string)));
         } catch {
           resolve(null);
         }
