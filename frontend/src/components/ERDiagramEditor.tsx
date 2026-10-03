@@ -19,6 +19,7 @@ import { saveToLocal, loadFromLocal, saveToFile, loadFromFile, createEmptyProjec
 import { generateDDL, type DDLTarget } from '../store/ddl-generator';
 import { pickAndParseDM2 } from '../store/dm2-parser';
 import { validateERModel } from '../store/model-validator';
+import { generateAIContextMarkdown, generateAIContextJSON, type AIContextScope } from '../store/ai-context-generator';
 import EntityNode from './EntityNode';
 import FieldEditorModal from './FieldEditorModal';
 import { SqlImportModal } from './SqlImportModal';
@@ -89,7 +90,14 @@ export default function ERDiagramEditor() {
   const [dm2Report, setDm2Report] = useState<string | null>(null);
   const [pendingDm2, setPendingDm2] = useState<Awaited<ReturnType<typeof pickAndParseDM2>>>(null);
   const [validationOpen, setValidationOpen] = useState(false);
+  const [aiContextOpen, setAIContextOpen] = useState(false);
+  const [aiContextScope, setAIContextScope] = useState<AIContextScope>('all');
+  const [aiContextFormat, setAIContextFormat] = useState<'markdown'|'json'>('markdown');
   const validationIssues = useMemo(() => validateERModel(erEntities, erRelationships), [erEntities, erRelationships]);
+  const aiContext = useMemo(() => {
+    const options = { scope: aiContextScope, selectedEntityId, activeSubmodel };
+    return aiContextFormat === 'json' ? generateAIContextJSON(erEntities, erRelationships, options) : generateAIContextMarkdown(erEntities, erRelationships, options);
+  }, [aiContextScope, aiContextFormat, erEntities, erRelationships, selectedEntityId, activeSubmodel]);
 
   const activeSubmodel = useMemo(
     () => erSubmodels.find((m) => m.id === activeSubmodelId) ?? null,
@@ -641,6 +649,7 @@ export default function ERDiagramEditor() {
           <button className="btn btn-sm" onClick={handleExportSQL}>
             📤 匯出 SQL
           </button>
+          <button className="btn btn-sm" onClick={() => setAIContextOpen(true)} title="輸出適合 LLM / Coding Agent 理解的資料庫結構">🤖 AI Context</button>
           <button className="btn btn-sm" onClick={() => setValidationOpen(true)} title="檢查 PK、FK、型別、重複名稱、Index 與 Alternate Key">
             🩺 模型檢查 {validationIssues.length ? `(${validationIssues.length})` : '✓'}
           </button>
@@ -873,6 +882,25 @@ export default function ERDiagramEditor() {
                 <button className="btn btn-sm" onClick={handleCopyDM2Report}>📋 複製報告</button>
                 <button className="btn btn-sm" onClick={() => { setDm2Report(null); setPendingDm2(null); }}>取消</button>
                 {pendingDm2 && <button className="btn btn-primary btn-sm" onClick={handleConfirmDM2Import}>✅ 確定匯入</button>}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {aiContextOpen && (
+        <div className="modal-overlay" onClick={() => setAIContextOpen(false)}>
+          <div className="modal ai-context-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header"><span>🤖 AI Database Context</span><button className="btn btn-xs" onClick={() => setAIContextOpen(false)}>✕</button></div>
+            <div className="modal-body">
+              <div className="ai-context-options">
+                <label>範圍<select value={aiContextScope} onChange={e=>setAIContextScope(e.target.value as AIContextScope)}><option value="all">全部模型</option>{activeSubmodel&&<option value="submodel">目前 Submodel：{activeSubmodel.name}</option>}<option value="selected" disabled={!selectedEntityId}>目前選取 Entity</option></select></label>
+                <label>格式<select value={aiContextFormat} onChange={e=>setAIContextFormat(e.target.value as 'markdown'|'json')}><option value="markdown">Markdown（推薦給 LLM）</option><option value="json">JSON（Agent / 程式）</option></select></label>
+              </div>
+              <textarea readOnly value={aiContext} className="ai-context-output" />
+              <div className="sql-modal-actions">
+                <button className="btn btn-primary btn-sm" onClick={async()=>{await navigator.clipboard.writeText(aiContext);setSaveStatus('✅ AI Context 已複製')}}>📋 Copy for AI</button>
+                <button className="btn btn-sm" onClick={()=>{const ext=aiContextFormat==='json'?'json':'md';const blob=new Blob([aiContext],{type:'text/plain;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`AI_CONTEXT.${ext}`;a.click();URL.revokeObjectURL(url)}}>⬇️ 匯出檔案</button>
               </div>
             </div>
           </div>
