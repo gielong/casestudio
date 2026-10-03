@@ -19,7 +19,7 @@ import { saveToLocal, loadFromLocal, saveToFile, loadFromFile, createEmptyProjec
 import { generateDDL, type DDLTarget } from '../store/ddl-generator';
 import { pickAndParseDM2 } from '../store/dm2-parser';
 import { validateERModel } from '../store/model-validator';
-import { generateAIContextMarkdown, generateAIContextJSON, type AIContextScope } from '../store/ai-context-generator';
+import { generateAIContextMarkdown, generateAIContextJSON, type AIContextScope, type AIContextDepth } from '../store/ai-context-generator';
 import EntityNode from './EntityNode';
 import FieldEditorModal from './FieldEditorModal';
 import { SqlImportModal } from './SqlImportModal';
@@ -92,12 +92,13 @@ export default function ERDiagramEditor() {
   const [validationOpen, setValidationOpen] = useState(false);
   const [aiContextOpen, setAIContextOpen] = useState(false);
   const [aiContextScope, setAIContextScope] = useState<AIContextScope>('all');
-  const [aiContextFormat, setAIContextFormat] = useState<'markdown'|'json'>('markdown');
+  const [aiContextFormat, setAIContextFormat] = useState<'markdown'|'compact'|'json'>('markdown');
+  const [aiContextDepth, setAIContextDepth] = useState<AIContextDepth>(1);
   const validationIssues = useMemo(() => validateERModel(erEntities, erRelationships), [erEntities, erRelationships]);
   const aiContext = useMemo(() => {
-    const options = { scope: aiContextScope, selectedEntityId, activeSubmodel };
+    const options = { scope: aiContextScope, selectedEntityId, activeSubmodel, depth: aiContextDepth, compact: aiContextFormat === 'compact' };
     return aiContextFormat === 'json' ? generateAIContextJSON(erEntities, erRelationships, options) : generateAIContextMarkdown(erEntities, erRelationships, options);
-  }, [aiContextScope, aiContextFormat, erEntities, erRelationships, selectedEntityId, activeSubmodel]);
+  }, [aiContextScope, aiContextFormat, aiContextDepth, erEntities, erRelationships, selectedEntityId, activeSubmodel]);
 
   const activeSubmodel = useMemo(
     () => erSubmodels.find((m) => m.id === activeSubmodelId) ?? null,
@@ -895,7 +896,8 @@ export default function ERDiagramEditor() {
             <div className="modal-body">
               <div className="ai-context-options">
                 <label>範圍<select value={aiContextScope} onChange={e=>setAIContextScope(e.target.value as AIContextScope)}><option value="all">全部模型</option>{activeSubmodel&&<option value="submodel">目前 Submodel：{activeSubmodel.name}</option>}<option value="selected" disabled={!selectedEntityId}>目前選取 Entity</option></select></label>
-                <label>格式<select value={aiContextFormat} onChange={e=>setAIContextFormat(e.target.value as 'markdown'|'json')}><option value="markdown">Markdown（推薦給 LLM）</option><option value="json">JSON（Agent / 程式）</option></select></label>
+                <label>格式<select value={aiContextFormat} onChange={e=>setAIContextFormat(e.target.value as 'markdown'|'compact'|'json')}><option value="markdown">Markdown（推薦給 LLM）</option><option value="compact">Compact（省 Token）</option><option value="json">JSON（Agent / 程式）</option></select></label>
+                <label>Relationship Depth<select value={String(aiContextDepth)} disabled={aiContextScope!=='selected'} onChange={e=>setAIContextDepth(e.target.value==='all'?'all':Number(e.target.value) as AIContextDepth)}><option value="0">0 - 僅此 Entity</option><option value="1">1 - 直接關聯</option><option value="2">2 - 二層關聯</option><option value="all">All</option></select></label>
               </div>
               <textarea readOnly value={aiContext} className="ai-context-output" />
               <div className="sql-modal-actions">
