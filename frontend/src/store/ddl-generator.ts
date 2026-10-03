@@ -1,7 +1,7 @@
 // Frontend DDL Generator - generates SQL from ER entities
 import type { EREntity, ERField } from '../api/client';
 
-export type DDLTarget = 'mysql' | 'postgresql' | 'sqlserver';
+export type DDLTarget = 'sqlserver' | 'sqlite' | 'mysql' | 'postgresql';
 
 interface DDLResult {
   target: string;
@@ -13,6 +13,7 @@ function quote(name: string, target: DDLTarget): string {
   switch (target) {
     case 'mysql': return `\`${name}\``;
     case 'postgresql': return `"${name}"`;
+    case 'sqlite': return `"${name}"`;
     case 'sqlserver': return `[${name}]`;
   }
 }
@@ -21,7 +22,14 @@ function mapType(field: ERField, target: DDLTarget): string {
   let t = field.dataType.toUpperCase();
 
   // Type mappings per target
-  if (target === 'mysql') {
+  if (target === 'sqlite') {
+    if (['TINYINT','SMALLINT','BIGINT','BIT','BOOLEAN'].includes(t)) t = 'INTEGER';
+    if (['NVARCHAR','NCHAR','NTEXT','VARCHAR','CHAR'].includes(t)) t = 'TEXT';
+    if (['DATETIME','DATETIME2','SMALLDATETIME','DATE','TIME','TIMESTAMP'].includes(t)) t = 'TEXT';
+    if (['DECIMAL','NUMERIC','MONEY','FLOAT','REAL'].includes(t)) t = 'REAL';
+    if (['VARBINARY','IMAGE'].includes(t)) t = 'BLOB';
+    if (['UUID','UNIQUEIDENTIFIER'].includes(t)) t = 'TEXT';
+  } else if (target === 'mysql') {
     if (t === 'NVARCHAR') t = 'VARCHAR';
     if (t === 'NCHAR') t = 'CHAR';
     if (t === 'NTEXT') t = 'TEXT';
