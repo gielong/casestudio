@@ -82,7 +82,7 @@ export default function ERDiagramEditor() {
   const [editingEntityId, setEditingEntityId] = useState<string | null>(null);
   const [sqlOutput, setSqlOutput] = useState<string>('');
   const [showSqlModal, setShowSqlModal] = useState(false);
-  const [ddlTarget, setDdlTarget] = useState<DDLTarget>('mysql');
+  const [ddlTarget, setDdlTarget] = useState<DDLTarget>('sqlserver');
   const [saveStatus, setSaveStatus] = useState<string>('');
   const [showSqlImportModal, setShowSqlImportModal] = useState(false);
   const [showSubmodelManager, setShowSubmodelManager] = useState(false);
@@ -638,15 +638,6 @@ export default function ERDiagramEditor() {
           <button className="btn btn-sm" onClick={handleImportDM2} title="匯入 CASE Studio 2 的 .dm2 / .~m2">
             📥 匯入 DM2
           </button>
-          <select
-            className="ddl-target-select"
-            value={ddlTarget}
-            onChange={(e) => setDdlTarget(e.target.value as DDLTarget)}
-          >
-            <option value="mysql">MySQL</option>
-            <option value="postgresql">PostgreSQL</option>
-            <option value="sqlserver">MSSQL</option>
-          </select>
           <button className="btn btn-sm" onClick={handleExportSQL}>
             📤 匯出 SQL
           </button>
@@ -905,8 +896,22 @@ export default function ERDiagramEditor() {
         <div className="sql-modal-overlay" onClick={() => setShowSqlModal(false)}>
           <div className="sql-modal" onClick={(e) => e.stopPropagation()}>
             <div className="sql-modal-header">
-              <span>📤 匯出 SQL — {ddlTarget.toUpperCase()}</span>
+              <span>📤 匯出 SQL</span>
               <button className="btn btn-xs" onClick={() => setShowSqlModal(false)}>✕</button>
+            </div>
+            <div className="sql-export-options">
+              <label>資料庫類型
+                <select className="ddl-target-select" value={ddlTarget} onChange={(e) => {
+                  const target = e.target.value as DDLTarget;
+                  setDdlTarget(target);
+                  setSqlOutput(generateDDL(visibleEntities, target).ddl);
+                }}>
+                  <option value="sqlserver">MSSQL / SQL Server</option>
+                  <option value="sqlite">SQLite</option>
+                  <option value="mysql">MySQL</option>
+                  <option value="postgresql">PostgreSQL</option>
+                </select>
+              </label>
             </div>
             <pre className="sql-output">{sqlOutput}</pre>
             <div className="sql-modal-actions">
