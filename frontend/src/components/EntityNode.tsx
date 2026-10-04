@@ -3,10 +3,11 @@ import { Handle, Position, type NodeProps } from 'reactflow';
 import type { EREntity, ERField } from '../api/client';
 
 function getTypeColor(field: ERField): string {
-  if (field.isPrimaryKey) return '#f38ba8';
-  if (field.isForeignKey) return '#89b4fa';
-  if (!field.isNullable) return '#a6e3a1';
-  return '#cdd6f4';
+  // PFK must win over the individual PK/FK colors.
+  if (field.isPrimaryKey && field.isForeignKey) return '#15803d';
+  if (field.isPrimaryKey) return '#dc2626';
+  if (field.isForeignKey) return '#2563eb';
+  return '#1f2937';
 }
 
 function getConstraints(field: ERField): string {
@@ -42,7 +43,7 @@ const FieldRow = memo(function FieldRow({ field }: { field: ERField }) {
       <Handle type="target" position={Position.Left} id={`field-${field.id}`} className="field-handle" />
       <div className="field-left">
         <span className="field-icon">
-          {field.isPrimaryKey ? '🔑' : field.isForeignKey ? '🔗' : '·'}
+          {field.isPrimaryKey && field.isForeignKey ? 'PFK' : field.isPrimaryKey ? 'PK' : field.isForeignKey ? 'FK' : '·'}
         </span>
         <span className="field-name-wrap">
           <span className="field-name" style={{ color: getTypeColor(field) }}>{field.name}</span>
