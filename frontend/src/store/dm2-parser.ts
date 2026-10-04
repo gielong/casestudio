@@ -179,11 +179,15 @@ export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
     const scale = readU32Property(bytes, view, [0xf3, 0x03], start, end);
     const defaultValue = readLengthString(bytes, view, [0xf8, 0x03], start, end);
     const dataType = TYPE_MAP[typeCode] ?? `DM2_TYPE_${typeCode}`;
+    // Confirmed with WEBERP(2).dm2: F403=1 is the field Primary Key flag.
+    // This must be read from the field itself; relying on Relationship records misses
+    // standalone PKs such as cPosShiftPay.ShiftPayId and cPosCashFlow.CashFlowId.
+    const isPrimaryKey = readU32Property(bytes, view, [0xf4, 0x03], start, end) === 1;
     const field: ERField = {
       id: `dm2-field-${parentId}-${index + 1}`, name, dataType,
       length: ['CHAR','VARCHAR','NCHAR','NVARCHAR','VARBINARY'].includes(dataType) ? lp : null,
       precision: ['DECIMAL','NUMERIC'].includes(dataType) ? lp : null,
-      scale: ['DECIMAL','NUMERIC'].includes(dataType) ? scale : null, isPrimaryKey: false, isForeignKey: false,
+      scale: ['DECIMAL','NUMERIC'].includes(dataType) ? scale : null, isPrimaryKey, isForeignKey: false,
       isNullable: true, isUnique: false, hasDefault: !!defaultValue, defaultValue,
       referencedEntity: '', referencedField: '', notes: readLengthString(bytes, view, [0xfd, 0x03], start, end),
     };
