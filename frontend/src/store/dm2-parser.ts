@@ -379,7 +379,7 @@ export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
 
 export async function pickAndParseDM2(): Promise<{ fileName: string; result: DM2ImportResult } | null> {
   return new Promise((resolve, reject) => {
-    const input = document.createElement('input'); input.type = 'file'; input.accept = '.dm2,.~m2';
+    const input = document.createElement('input'); input.type = 'file'; input.accept = '';
     input.onchange = async () => {
       const file = input.files?.[0]; if (!file) return resolve(null);
       try { resolve({ fileName: file.name, result: parseDM2(await file.arrayBuffer()) }); } catch (error) { reject(error); }
