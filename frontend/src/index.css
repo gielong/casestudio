@@ -712,7 +712,7 @@ body {
 
 /* ER Entity Node (React Flow) */
 .entity-node {
-  background: var(--bg-surface);
+  background: #ffffff;
   border: 2px solid var(--border);
   border-radius: 8px;
   min-width: 220px;
@@ -796,6 +796,8 @@ body {
 
 .entity-fields {
   padding: 4px 0;
+  background: #ffffff;
+  color: #1f2937;
 }
 
 .entity-field {
