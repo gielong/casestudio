@@ -64,6 +64,11 @@ function readU32Property(bytes: Uint8Array, view: DataView, marker: number[], fr
   return p >= 0 && p + marker.length + 4 <= to ? u32(view, p + marker.length) : null;
 }
 
+function readByteProperty(bytes: Uint8Array, marker: number[], from: number, to: number) {
+  const p = find(bytes, marker, from, to);
+  return p >= 0 && p + marker.length < to ? bytes[p + marker.length] : null;
+}
+
 function recordStarts(bytes: Uint8Array, kind: number) {
   const result: number[] = [];
   const marker = [0xf5, 0x01, kind, 0x00];
@@ -179,10 +184,11 @@ export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
     const scale = readU32Property(bytes, view, [0xf3, 0x03], start, end);
     const defaultValue = readLengthString(bytes, view, [0xf8, 0x03], start, end);
     const dataType = TYPE_MAP[typeCode] ?? `DM2_TYPE_${typeCode}`;
-    // Confirmed with WEBERP(2).dm2: F403=1 is the field Primary Key flag.
-    // This must be read from the field itself; relying on Relationship records misses
+    // Confirmed with WEBERP(2).dm2: F403 is a one-byte boolean property (F4 03 01),
+    // not a uint32. Reading four bytes consumed the following F503 marker and made the
+    // comparison fail. This must be read from the field itself; relying on Relationship records misses
     // standalone PKs such as cPosShiftPay.ShiftPayId and cPosCashFlow.CashFlowId.
-    const isPrimaryKey = readU32Property(bytes, view, [0xf4, 0x03], start, end) === 1;
+    const isPrimaryKey = readByteProperty(bytes, [0xf4, 0x03], start, end) === 1;
     const field: ERField = {
       id: `dm2-field-${parentId}-${index + 1}`, name, dataType,
       length: ['CHAR','VARCHAR','NCHAR','NVARCHAR','VARBINARY'].includes(dataType) ? lp : null,
