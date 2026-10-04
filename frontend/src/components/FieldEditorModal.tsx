@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useStore, generateId } from '../store/useStore';
 import type { ERField, ERRelationship } from '../api/client';
+import { generateDDL, type DDLTarget } from '../store/ddl-generator';
 
 const DATA_TYPES = ['INT','BIGINT','SMALLINT','TINYINT','DECIMAL','NUMERIC','FLOAT','REAL','VARCHAR','NVARCHAR','CHAR','NCHAR','TEXT','NTEXT','DATE','TIME','DATETIME','DATETIME2','TIMESTAMP','BIT','BOOLEAN','BLOB','VARBINARY','IMAGE','UUID','UNIQUEIDENTIFIER','JSON','XML'];
 const TYPE_HAS_LENGTH = ['VARCHAR','NVARCHAR','CHAR','NCHAR','VARBINARY'];
@@ -14,6 +15,7 @@ export default function FieldEditorModal({ entityId, onClose }: Props) {
   const entity = erEntities.find(e => e.id === entityId);
   const [tab,setTab]=useState<Tab>('fields');
   const [selectedFieldId,setSelectedFieldId]=useState<string|null>(null);
+  const [ddlTarget,setDdlTarget]=useState<DDLTarget>('sqlserver');
   const selectedField=entity?.fields.find(f=>f.id===selectedFieldId);
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -36,7 +38,8 @@ export default function FieldEditorModal({ entityId, onClose }: Props) {
   const addIndex=()=>updateErEntity(entityId,{indexes:[...indexes,{id:generateId('idx'),name:`IX_${entity.tableName||entity.name}_${indexes.length+1}`,fieldIds:[],isUnique:false}]});
   const addConstraint=()=>updateErEntity(entityId,{checkConstraints:[...constraints,{id:generateId('ck'),name:`CK_${entity.tableName||entity.name}_${constraints.length+1}`,expression:''}]});
   const addAlternateKey=()=>updateErEntity(entityId,{alternateKeys:[...alternateKeys,{id:generateId('ak'),name:`AK_${entity.tableName||entity.name}_${alternateKeys.length+1}`,fieldIds:[]}]});
-  const ddl=`CREATE TABLE ${entity.tableName||entity.name} (\n${entity.fields.map(f=>`  ${f.columnName||f.name} ${f.dataType}${f.length?`(${f.length})`:''}${f.isNullable?'':' NOT NULL'}`).join(',\n')}\n);`;
+  // Use the same generator as SQL export so Entity DDL preview and exported SQL stay identical.
+  const ddlResult=useMemo(()=>generateDDL([entity],ddlTarget),[entity,ddlTarget]);
 
   return <div className="modal-overlay entity-designer-overlay" onClick={onClose}>
     <div className="modal entity-designer" onClick={e=>e.stopPropagation()}>
@@ -74,7 +77,20 @@ export default function FieldEditorModal({ entityId, onClose }: Props) {
         {tab==='ai'&&<div className="ai-semantic-editor"><label>Purpose / 業務用途<textarea value={entity.purpose??''} onChange={e=>updateErEntity(entityId,{purpose:e.target.value})} placeholder="說明這張 Entity 在系統中的用途，讓 AI 知道何時應該使用它。"/></label><label>Business Rules / 業務規則<textarea value={entity.businessRules??''} onChange={e=>updateErEntity(entityId,{businessRules:e.target.value})} placeholder={"例如：\nStatus=2 表示作廢，不可列入營業額。\n歷史售價必須使用 SaleD.Price。"}/></label></div>}
         {tab==='notes'&&<textarea className="entity-notes" value={entity.notes} onChange={e=>updateErEntity(entityId,{notes:e.target.value})} placeholder="Entity Notes..." />}
         {tab==='comments'&&<textarea className="entity-notes" value={entity.comments??''} onChange={e=>updateErEntity(entityId,{comments:e.target.value})} placeholder="Comments..." />}
-        {tab==='ddl'&&<pre className="ddl-preview">{ddl}</pre>}
+        {tab==='ddl'&&<>
+          <div className="entity-toolbar ddl-target-toolbar">
+            <label>SQL 類型
+              <select value={ddlTarget} onChange={e=>setDdlTarget(e.target.value as DDLTarget)}>
+                <option value="sqlserver">MSSQL / SQL Server</option>
+                <option value="sqlite">SQLite</option>
+                <option value="mysql">MySQL</option>
+                <option value="postgresql">PostgreSQL</option>
+              </select>
+            </label>
+          </div>
+          <pre className="ddl-preview">{ddlResult.ddl}</pre>
+          {ddlResult.warnings.length>0&&<div className="ddl-warnings">{ddlResult.warnings.map((w,i)=><div key={i}>⚠️ {w}</div>)}</div>}
+        </>}
         {(['properties'] as Tab[]).includes(tab)&&<div className="empty-tab">此分頁已預留，後續將加入完整資料庫屬性。</div>}
       </div>
       <div className="modal-footer"><button className="btn btn-danger btn-sm" onClick={()=>{if(confirm(`確定刪除 Entity「${entity.name}」？`)){removeErEntity(entityId);onClose();}}}>🗑️ 刪除 Entity</button><button className="btn btn-primary btn-sm" onClick={onClose}>完成</button></div>
