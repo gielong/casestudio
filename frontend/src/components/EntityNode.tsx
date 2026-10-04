@@ -3,10 +3,11 @@ import { Handle, Position, type NodeProps } from 'reactflow';
 import type { EREntity, ERField } from '../api/client';
 
 function getTypeColor(field: ERField): string {
-  // PFK must win over the individual PK/FK colors.
+  // Key colors take priority. Ordinary NOT NULL fields are muted gray.
   if (field.isPrimaryKey && field.isForeignKey) return '#15803d';
   if (field.isPrimaryKey) return '#dc2626';
   if (field.isForeignKey) return '#2563eb';
+  if (!field.isNullable) return '#6b7280';
   return '#1f2937';
 }
 
@@ -54,6 +55,7 @@ const FieldRow = memo(function FieldRow({ field }: { field: ERField }) {
         <span className="field-type">{formatDataType(field)}</span>
         <span className="field-constraints">{getConstraints(field)}</span>
       </div>
+      <div className="field-description" title={field.notes || ''}>{field.notes || ''}</div>
       <Handle type="source" position={Position.Right} id={`field-${field.id}`} className="field-handle" />
       
       {/* Field Tooltip */}
