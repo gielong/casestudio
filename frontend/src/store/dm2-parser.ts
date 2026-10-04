@@ -184,11 +184,11 @@ export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
     const scale = readU32Property(bytes, view, [0xf3, 0x03], start, end);
     const defaultValue = readLengthString(bytes, view, [0xf8, 0x03], start, end);
     const dataType = TYPE_MAP[typeCode] ?? `DM2_TYPE_${typeCode}`;
-    // Confirmed with WEBERP(2).dm2: F403 is a one-byte boolean property (F4 03 01),
-    // not a uint32. Reading four bytes consumed the following F503 marker and made the
-    // comparison fail. This must be read from the field itself; relying on Relationship records misses
-    // standalone PKs such as cPosShiftPay.ShiftPayId and cPosCashFlow.CashFlowId.
-    const isPrimaryKey = readByteProperty(bytes, [0xf4, 0x03], start, end) === 1;
+    // Confirmed against WEBERP(2).dm2: E903 is the field PK boolean.
+    // F403 is a different field flag and is 1 on many ordinary columns, so using it
+    // incorrectly promoted ordinary fields to PK. Examples: ShiftPayId/CashFlowId have
+    // E903=1 while ordinary Amount/Memo fields have E903=0.
+    const isPrimaryKey = readByteProperty(bytes, [0xe9, 0x03], start, end) === 1;
     const field: ERField = {
       id: `dm2-field-${parentId}-${index + 1}`, name, dataType,
       length: ['CHAR','VARCHAR','NCHAR','NVARCHAR','VARBINARY'].includes(dataType) ? lp : null,
