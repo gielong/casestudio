@@ -86,6 +86,7 @@ export default function ERDiagramEditor() {
   const [ddlTarget, setDdlTarget] = useState<DDLTarget>('sqlserver');
   const [saveStatus, setSaveStatus] = useState<string>('');
   const [showSqlImportModal, setShowSqlImportModal] = useState(false);
+  const [showImportMenu, setShowImportMenu] = useState(false);
   const [showSubmodelManager, setShowSubmodelManager] = useState(false);
   const [dm2Report, setDm2Report] = useState<string | null>(null);
   const [pendingDm2, setPendingDm2] = useState<Awaited<ReturnType<typeof pickAndParseDM2>>>(null);
@@ -486,7 +487,7 @@ export default function ERDiagramEditor() {
       const { fileName, result } = picked;
       const fieldCount = result.entities.reduce((sum, entity) => sum + entity.fields.length, 0);
       const report = [
-        `DM2 解析報告：${fileName}`,
+        `檔案解析報告：${fileName}`,
         '',
         `Entity：${result.entities.length}`,
         `Field：${fieldCount}`,
@@ -501,7 +502,7 @@ export default function ERDiagramEditor() {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       setPendingDm2(null);
-      setDm2Report(`DM2 匯入失敗\n\n${message}`);
+      setDm2Report(`檔案匯入失敗\n\n${message}`);
     }
   }, []);
 
@@ -512,7 +513,7 @@ export default function ERDiagramEditor() {
     result.entities.forEach(addErEntity);
     result.relationships.forEach(addErRelationship);
     setErSubmodels(result.submodels);
-    setSaveStatus(`✅ 已匯入 DM2：${result.entities.length} Entity / ${fieldCount} Field / ${result.relationships.length} Relationship`);
+    setSaveStatus(`✅ 已匯入：${result.entities.length} Entity / ${fieldCount} Field / ${result.relationships.length} Relationship`);
     setPendingDm2(null);
     setDm2Report(null);
     setTimeout(() => setSaveStatus(''), 5000);
@@ -521,7 +522,7 @@ export default function ERDiagramEditor() {
   const handleCopyDM2Report = useCallback(async () => {
     if (!dm2Report) return;
     await navigator.clipboard.writeText(dm2Report);
-    setSaveStatus('✅ DM2 解析報告已複製');
+    setSaveStatus('✅ 解析報告已複製');
     setTimeout(() => setSaveStatus(''), 2500);
   }, [dm2Report]);
 
@@ -641,12 +642,16 @@ export default function ERDiagramEditor() {
           <button className="btn btn-primary btn-sm" onClick={handleAddEntity}>
             + 新增 Entity
           </button>
-          <button className="btn btn-sm" onClick={() => setShowSqlImportModal(true)}>
-            📥 匯入 SQL
-          </button>
-          <button className="btn btn-sm" onClick={handleImportDM2} title="匯入 CASE Studio 2 的 .dm2 / .~m2">
-            📥 匯入 DM2
-          </button>
+          <div className="submodel-menu-wrap">
+            <button className="btn btn-sm" onClick={() => setShowImportMenu(v => !v)} title="匯入專案、模型或 SQL DDL">
+              📥 匯入 ▾
+            </button>
+            {showImportMenu && <div className="submodel-menu">
+              <button type="button" onClick={() => { setShowImportMenu(false); handleImportFile(); }}>📁 專案檔案</button>
+              <button type="button" onClick={() => { setShowImportMenu(false); setShowSqlImportModal(true); }}>🧾 SQL DDL</button>
+              <button type="button" onClick={() => { setShowImportMenu(false); handleImportDM2(); }}>📦 其他模型檔案</button>
+            </div>}
+          </div>
           <button className="btn btn-sm" onClick={handleExportSQL}>
             📤 匯出 SQL
           </button>
@@ -660,10 +665,7 @@ export default function ERDiagramEditor() {
           <button className="btn btn-sm" onClick={handleExportFile}>
             📁 另存檔案
           </button>
-          <button className="btn btn-sm" onClick={handleImportFile}>
-            📂 開啟檔案
-          </button>
-          <button className="btn btn-sm" onClick={() => {
+           <button className="btn btn-sm" onClick={() => {
             if (confirm('確定開新專案？目前未儲存的內容將會消失。')) {
               setErEntities([]);
               setErRelationships([]);
@@ -869,7 +871,7 @@ export default function ERDiagramEditor() {
         <div className="modal-overlay" onClick={() => { setDm2Report(null); setPendingDm2(null); }}>
           <div className="modal" onClick={(e) => e.stopPropagation()} style={{ width: 'min(720px, 92vw)' }}>
             <div className="modal-header">
-              <span>📥 DM2 解析報告</span>
+              <span>📥 檔案解析報告</span>
               <button className="btn btn-xs" onClick={() => { setDm2Report(null); setPendingDm2(null); }}>✕</button>
             </div>
             <div className="modal-body">
