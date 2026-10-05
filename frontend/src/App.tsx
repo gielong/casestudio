@@ -13,13 +13,13 @@ import { loadFromLocal, createEmptyProject, saveToLocal } from './store/storage'
 const MOBILE_QUERY = '(max-width: 768px)';
 
 const NAV_ITEMS: { page: Page; label: string; icon: string }[] = [
+  { page: 'er-diagram', label: 'ER 圖', icon: '📐' },
+  { page: 'codegen', label: '匯出 Pio C#', icon: '⌨️' },
   { page: 'connect', label: '連線', icon: '🔌' },
   { page: 'schema', label: '結構', icon: '🗃️' },
-  { page: 'er-diagram', label: 'ER 圖', icon: '📐' },
   { page: 'requirements', label: '需求', icon: '📋' },
   { page: 'usecase', label: '用例圖', icon: '👤' },
   { page: 'flowchart', label: '流程圖', icon: '🔄' },
-  { page: 'codegen', label: 'C# 產碼', icon: '⌨️' },
   { page: 'versions', label: '版本', icon: '📦' },
   { page: 'documents', label: '文件', icon: '📄' },
   { page: 'audit', label: '日誌', icon: '📝' },
@@ -142,7 +142,7 @@ function App() {
               </button>
             ))}
           </div>
-          <div className="sidebar-version">v2026.10.06.024</div>
+          <div className="sidebar-version">v2026.10.06.025</div>
           <button
             className="sidebar-toggle"
             onClick={() => setSidebarOpen(!sidebarOpen)}
