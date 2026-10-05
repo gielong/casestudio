@@ -13,12 +13,13 @@ function getTypeColor(field: ERField): string {
 
 function getConstraints(field: ERField): string {
   const parts: string[] = [];
-  if (field.isPrimaryKey) parts.push('PK');
-  if (field.isForeignKey) parts.push('FK');
-  if (field.isUnique) parts.push('UQ');
   if (!field.isNullable) parts.push('NN');
+  if (field.isPrimaryKey && field.isForeignKey) parts.push('(PFK)');
+  else if (field.isPrimaryKey) parts.push('(PK)');
+  else if (field.isForeignKey) parts.push('(FK)');
+  if (field.isUnique) parts.push('UQ');
   if (field.hasDefault) parts.push('DEF');
-  return parts.join(', ');
+  return parts.join(' ');
 }
 
 function formatDataType(field: ERField): string {
@@ -43,9 +44,7 @@ const FieldRow = memo(function FieldRow({ field }: { field: ERField }) {
     >
       <Handle type="target" position={Position.Left} id={`field-${field.id}`} className="field-handle" />
       <div className="field-left">
-        <span className="field-icon">
-          {field.isPrimaryKey && field.isForeignKey ? 'PFK' : field.isPrimaryKey ? 'PK' : field.isForeignKey ? 'FK' : '·'}
-        </span>
+        <span className="field-icon">{field.isPrimaryKey || field.isForeignKey ? '›' : ''}</span>
         <span className="field-name-wrap">
           <span className="field-name" style={{ color: getTypeColor(field) }}>{field.columnName || field.name}</span>
           {field.columnName && field.columnName !== field.name && <span className="field-logical-name">{field.name}</span>}
