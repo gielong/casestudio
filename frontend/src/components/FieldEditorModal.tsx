@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useStore, generateId } from '../store/useStore';
 import type { ERField, ERRelationship } from '../api/client';
 import { generateDDL, type DDLTarget } from '../store/ddl-generator';
+import { generateAIContextMarkdown, generateAIContextJSON } from '../store/ai-context-generator';
 
 const DATA_TYPES = ['INT','BIGINT','SMALLINT','TINYINT','DECIMAL','NUMERIC','FLOAT','REAL','VARCHAR','NVARCHAR','CHAR','NCHAR','TEXT','NTEXT','DATE','TIME','DATETIME','DATETIME2','TIMESTAMP','BIT','BOOLEAN','BLOB','VARBINARY','IMAGE','UUID','UNIQUEIDENTIFIER','JSON','XML'];
 const TYPE_HAS_LENGTH = ['VARCHAR','NVARCHAR','CHAR','NCHAR','VARBINARY'];
@@ -16,6 +17,7 @@ export default function FieldEditorModal({ entityId, onClose }: Props) {
   const [tab,setTab]=useState<Tab>('fields');
   const [selectedFieldId,setSelectedFieldId]=useState<string|null>(null);
   const [ddlTarget,setDdlTarget]=useState<DDLTarget>('sqlserver');
+  const [ddlFormat,setDdlFormat]=useState<'ddl'|'ai-markdown'|'ai-compact'|'ai-json'>('ddl');
   const selectedField=entity?.fields.find(f=>f.id===selectedFieldId);
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -40,6 +42,12 @@ export default function FieldEditorModal({ entityId, onClose }: Props) {
   const addAlternateKey=()=>updateErEntity(entityId,{alternateKeys:[...alternateKeys,{id:generateId('ak'),name:`AK_${entity.tableName||entity.name}_${alternateKeys.length+1}`,fieldIds:[]}]});
   // Use the same generator as SQL export so Entity DDL preview and exported SQL stay identical.
   const ddlResult=useMemo(()=>generateDDL([entity],ddlTarget),[entity,ddlTarget]);
+  const ddlOutput=useMemo(()=>{
+    if(ddlFormat==='ddl') return ddlResult.ddl;
+    const options={scope:'selected' as const,selectedEntityId:entity.id,depth:0 as const};
+    if(ddlFormat==='ai-json') return generateAIContextJSON(erEntities,erRelationships,options);
+    return generateAIContextMarkdown(erEntities,erRelationships,{...options,compact:ddlFormat==='ai-compact'});
+  },[ddlFormat,ddlResult.ddl,entity.id,erEntities,erRelationships]);
 
   return <div className="modal-overlay entity-designer-overlay" onClick={onClose}>
     <div className="modal entity-designer" onClick={e=>e.stopPropagation()}>
@@ -79,17 +87,25 @@ export default function FieldEditorModal({ entityId, onClose }: Props) {
         {tab==='comments'&&<textarea className="entity-notes" value={entity.comments??''} onChange={e=>updateErEntity(entityId,{comments:e.target.value})} placeholder="Comments..." />}
         {tab==='ddl'&&<>
           <div className="entity-toolbar ddl-target-toolbar">
-            <label>SQL 類型
+            <label>匯出格式
+              <select value={ddlFormat} onChange={e=>setDdlFormat(e.target.value as typeof ddlFormat)}>
+                <option value="ddl">SQL DDL</option>
+                <option value="ai-markdown">AI Context / Markdown</option>
+                <option value="ai-compact">AI Context / Compact</option>
+                <option value="ai-json">AI Context / JSON</option>
+              </select>
+            </label>
+            {ddlFormat==='ddl'&&<label>SQL 類型
               <select value={ddlTarget} onChange={e=>setDdlTarget(e.target.value as DDLTarget)}>
                 <option value="sqlserver">MSSQL / SQL Server</option>
                 <option value="sqlite">SQLite</option>
                 <option value="mysql">MySQL</option>
                 <option value="postgresql">PostgreSQL</option>
               </select>
-            </label>
-            <button className="btn btn-sm" onClick={async()=>{await navigator.clipboard.writeText(ddlResult.ddl)}}>📋 複製</button>
+            </label>}
+            <button className="btn btn-sm" onClick={async()=>{await navigator.clipboard.writeText(ddlOutput)}}>📋 複製</button>
           </div>
-          <pre className="ddl-preview">{ddlResult.ddl}</pre>
+          <pre className="ddl-preview">{ddlOutput}</pre>
           {ddlResult.warnings.length>0&&<div className="ddl-warnings">{ddlResult.warnings.map((w,i)=><div key={i}>⚠️ {w}</div>)}</div>}
         </>}
         {(['properties'] as Tab[]).includes(tab)&&<div className="empty-tab">此分頁已預留，後續將加入完整資料庫屬性。</div>}
