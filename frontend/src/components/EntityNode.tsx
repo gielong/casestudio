@@ -3,11 +3,11 @@ import { Handle, Position, type NodeProps } from 'reactflow';
 import type { EREntity, ERField } from '../api/client';
 
 function getTypeColor(field: ERField): string {
-  // Key colors take priority. Ordinary NOT NULL fields are muted gray.
+  // Key colors take priority. Ordinary nullable fields are muted gray.
   if (field.isPrimaryKey && field.isForeignKey) return '#15803d';
   if (field.isPrimaryKey) return '#dc2626';
   if (field.isForeignKey) return '#2563eb';
-  if (!field.isNullable) return '#6b7280';
+  if (field.isNullable) return '#6b7280';
   return '#1f2937';
 }
 
