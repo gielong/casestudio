@@ -477,7 +477,7 @@ export default function ERDiagramEditor() {
   const handleImportFile = useCallback(async () => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.json,.txt,.dm2';
+    input.accept = '.json,.txt,.dm2,.~dm2,application/octet-stream';
     input.onchange = async () => {
       const file = input.files?.[0];
       if (!file) return;
@@ -502,7 +502,7 @@ export default function ERDiagramEditor() {
         const result = parseDM2(await file.arrayBuffer());
         const fieldCount = result.entities.reduce((sum, entity) => sum + entity.fields.length, 0);
         setPendingDm2({ fileName: file.name, result });
-        setDm2Report([`檔案解析報告：${file.name}`,'',`Entity：${result.entities.length}`,`Field：${fieldCount}`,`Relationship：${result.relationships.length}`,`Submodel：${result.submodels.length}`,'',result.warnings.length ? '警告 / 尚未完全解析：' : '警告：無',...result.warnings.map(w => `- ${w}`)].join('\\n'));
+        setDm2Report([`檔案解析報告：${file.name}`,'',`Entity：${result.entities.length}`,`Field：${fieldCount}`,`Relationship：${result.relationships.length}`,`Submodel：${result.submodels.length}`,'',result.warnings.length ? '警告 / 尚未完全解析：' : '警告：無',...result.warnings.map(w => `- ${w}`)].join('\n'));
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         setPendingDm2(null);
