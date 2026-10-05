@@ -340,6 +340,24 @@ export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
     sm.layout[entity.id] = { x: x * 2, y: y * 2 };
   });
 
+  // Some legacy files omit the 0x73 placement record for an entity in a submodel even
+  // though its relationships clearly place it there. Recover only unambiguous cases:
+  // if an entity is not in any non-main submodel and all of its related neighbours that
+  // do have memberships point to exactly one submodel, inherit that membership.
+  const mainModelId = [...numericSubmodelMap.values()].find(sm => sm.name.trim().toLowerCase() === 'main model')?.id;
+  const nonMainModels = [...numericSubmodelMap.values()].filter(sm => sm.id !== mainModelId);
+  for (const entity of entities) {
+    if (nonMainModels.some(sm => sm.entityIds.includes(entity.id))) continue;
+    const neighbourIds = relationships.flatMap(rel => rel.sourceEntityId === entity.id ? [rel.targetEntityId] : rel.targetEntityId === entity.id ? [rel.sourceEntityId] : []);
+    const candidateModels = nonMainModels.filter(sm => neighbourIds.some(id => sm.entityIds.includes(id)));
+    const uniqueCandidates = [...new Map(candidateModels.map(sm => [sm.id, sm])).values()];
+    if (uniqueCandidates.length === 1) {
+      const sm = uniqueCandidates[0];
+      sm.entityIds.push(entity.id);
+      warnings.push(`Submodel："${entity.name}" 缺少原始 placement record，依唯一 Relationship 鄰接模型補入 "${sm.name}"。`);
+    }
+  }
+
   let submodels = [...numericSubmodelMap.values()];
 
   // The UI represents CASE Studio's "Main model" as 全部模型 rather than a separate
