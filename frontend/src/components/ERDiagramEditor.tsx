@@ -76,7 +76,7 @@ export default function ERDiagramEditor() {
     setSubmodelEntityPosition,
   } = useStore();
 
-  const { project, fitView } = useReactFlow();
+  const { project, fitView, setCenter } = useReactFlow();
 
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [editingRel, setEditingRel] = useState<ERRelationship | null>(null);
@@ -85,6 +85,7 @@ export default function ERDiagramEditor() {
   const [showSqlModal, setShowSqlModal] = useState(false);
   const [ddlTarget, setDdlTarget] = useState<DDLTarget>('sqlserver');
   const [exportEntityIds, setExportEntityIds] = useState<string[]>([]);
+  const [exportModelId, setExportModelId] = useState<string>('main');
   const [saveStatus, setSaveStatus] = useState<string>('');
   const [showSqlImportModal, setShowSqlImportModal] = useState(false);
   const [showImportMenu, setShowImportMenu] = useState(false);
@@ -531,18 +532,29 @@ export default function ERDiagramEditor() {
   }, [dm2Report]);
 
   // Generate DDL SQL locally
+  const getExportEntities = useCallback((modelId: string) => {
+    if (modelId === 'main') return erEntities;
+    const model = erSubmodels.find(sm => sm.id === modelId);
+    if (!model) return [];
+    const ids = new Set(model.entityIds);
+    return erEntities.filter(entity => ids.has(entity.id));
+  }, [erEntities, erSubmodels]);
+
   const handleExportSQL = useCallback(() => {
-    const ids = visibleEntities.map(entity => entity.id);
+    const modelId = activeSubmodelId || 'main';
+    const candidates = getExportEntities(modelId).sort((a,b) => a.name.localeCompare(b.name));
+    const ids = candidates.map(entity => entity.id);
+    setExportModelId(modelId);
     setExportEntityIds(ids);
-    setSqlOutput(generateDDL(visibleEntities, ddlTarget).ddl);
+    setSqlOutput(generateDDL(candidates, ddlTarget).ddl);
     setShowSqlModal(true);
-  }, [visibleEntities, ddlTarget]);
+  }, [activeSubmodelId, getExportEntities, ddlTarget]);
 
   const updateExportSelection = useCallback((ids: string[], target = ddlTarget) => {
     setExportEntityIds(ids);
-    const selected = visibleEntities.filter(entity => ids.includes(entity.id));
+    const selected = getExportEntities(exportModelId).filter(entity => ids.includes(entity.id));
     setSqlOutput(selected.length ? generateDDL(selected, target).ddl : '-- 請至少選擇一個 Entity --');
-  }, [visibleEntities, ddlTarget]);
+  }, [getExportEntities, exportModelId, ddlTarget]);
 
   // Copy SQL to clipboard
   const handleCopySQL = useCallback(() => {
@@ -943,11 +955,24 @@ export default function ERDiagramEditor() {
               <button className="btn btn-xs" onClick={() => setShowSqlModal(false)}>✕</button>
             </div>
             <div className="sql-export-options">
+              <label>模型
+                <select className="ddl-target-select" value={exportModelId} onChange={(e) => {
+                  const modelId = e.target.value;
+                  const candidates = getExportEntities(modelId).sort((a,b) => a.name.localeCompare(b.name));
+                  const ids = candidates.map(entity => entity.id);
+                  setExportModelId(modelId);
+                  setExportEntityIds(ids);
+                  setSqlOutput(candidates.length ? generateDDL(candidates, ddlTarget).ddl : '-- 此模型沒有 Entity --');
+                }}>
+                  <option value="main">Main Model</option>
+                  {erSubmodels.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(sm => <option key={sm.id} value={sm.id}>{sm.name}</option>)}
+                </select>
+              </label>
               <label>資料庫類型
                 <select className="ddl-target-select" value={ddlTarget} onChange={(e) => {
                   const target = e.target.value as DDLTarget;
                   setDdlTarget(target);
-                  const selected = visibleEntities.filter(entity => exportEntityIds.includes(entity.id));
+                  const selected = getExportEntities(exportModelId).filter(entity => exportEntityIds.includes(entity.id));
                   setSqlOutput(selected.length ? generateDDL(selected, target).ddl : '-- 請至少選擇一個 Entity --');
                 }}>
                   <option value="sqlserver">MSSQL / SQL Server</option>
@@ -959,14 +984,14 @@ export default function ERDiagramEditor() {
             </div>
             <div className="export-entity-picker">
               <div className="export-entity-picker-header">
-                <strong>選擇 Entity（{exportEntityIds.length}/{visibleEntities.length}）</strong>
+                <strong>選擇 Entity（{exportEntityIds.length}/{getExportEntities(exportModelId).length}）</strong>
                 <span>
-                  <button className="btn btn-xs" onClick={() => updateExportSelection(visibleEntities.map(e => e.id))}>全選</button>
+                  <button className="btn btn-xs" onClick={() => updateExportSelection(getExportEntities(exportModelId).map(e => e.id))}>全選</button>
                   <button className="btn btn-xs" onClick={() => updateExportSelection([])}>清除</button>
                 </span>
               </div>
               <div className="export-entity-list">
-                {visibleEntities.map(entity => <label key={entity.id} className="export-entity-item">
+                {getExportEntities(exportModelId).slice().sort((a,b)=>a.name.localeCompare(b.name)).map(entity => <label key={entity.id} className="export-entity-item">
                   <input type="checkbox" checked={exportEntityIds.includes(entity.id)} onChange={() => {
                     const ids = exportEntityIds.includes(entity.id) ? exportEntityIds.filter(id => id !== entity.id) : [...exportEntityIds, entity.id];
                     updateExportSelection(ids);
