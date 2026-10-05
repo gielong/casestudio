@@ -47,8 +47,8 @@ const FieldRow = memo(function FieldRow({ field }: { field: ERField }) {
           {field.isPrimaryKey && field.isForeignKey ? 'PFK' : field.isPrimaryKey ? 'PK' : field.isForeignKey ? 'FK' : '·'}
         </span>
         <span className="field-name-wrap">
-          <span className="field-name" style={{ color: getTypeColor(field) }}>{field.name}</span>
-          {field.columnName && field.columnName !== field.name && <span className="field-column-name">{field.columnName}</span>}
+          <span className="field-name" style={{ color: getTypeColor(field) }}>{field.columnName || field.name}</span>
+          {field.columnName && field.columnName !== field.name && <span className="field-logical-name">{field.name}</span>}
         </span>
       </div>
       <div className="field-right">
