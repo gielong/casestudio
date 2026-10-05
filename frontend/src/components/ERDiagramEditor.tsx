@@ -84,6 +84,7 @@ export default function ERDiagramEditor() {
   const [sqlOutput, setSqlOutput] = useState<string>('');
   const [showSqlModal, setShowSqlModal] = useState(false);
   const [ddlTarget, setDdlTarget] = useState<DDLTarget>('sqlserver');
+  const [exportEntityIds, setExportEntityIds] = useState<string[]>([]);
   const [saveStatus, setSaveStatus] = useState<string>('');
   const [showSqlImportModal, setShowSqlImportModal] = useState(false);
   const [showImportMenu, setShowImportMenu] = useState(false);
@@ -531,9 +532,16 @@ export default function ERDiagramEditor() {
 
   // Generate DDL SQL locally
   const handleExportSQL = useCallback(() => {
-    const result = generateDDL(visibleEntities, ddlTarget);
-    setSqlOutput(result.ddl);
+    const ids = visibleEntities.map(entity => entity.id);
+    setExportEntityIds(ids);
+    setSqlOutput(generateDDL(visibleEntities, ddlTarget).ddl);
     setShowSqlModal(true);
+  }, [visibleEntities, ddlTarget]);
+
+  const updateExportSelection = useCallback((ids: string[], target = ddlTarget) => {
+    setExportEntityIds(ids);
+    const selected = visibleEntities.filter(entity => ids.includes(entity.id));
+    setSqlOutput(selected.length ? generateDDL(selected, target).ddl : '-- 請至少選擇一個 Entity --');
   }, [visibleEntities, ddlTarget]);
 
   // Copy SQL to clipboard
@@ -939,7 +947,8 @@ export default function ERDiagramEditor() {
                 <select className="ddl-target-select" value={ddlTarget} onChange={(e) => {
                   const target = e.target.value as DDLTarget;
                   setDdlTarget(target);
-                  setSqlOutput(generateDDL(visibleEntities, target).ddl);
+                  const selected = visibleEntities.filter(entity => exportEntityIds.includes(entity.id));
+                  setSqlOutput(selected.length ? generateDDL(selected, target).ddl : '-- 請至少選擇一個 Entity --');
                 }}>
                   <option value="sqlserver">MSSQL / SQL Server</option>
                   <option value="sqlite">SQLite</option>
@@ -947,6 +956,24 @@ export default function ERDiagramEditor() {
                   <option value="postgresql">PostgreSQL</option>
                 </select>
               </label>
+            </div>
+            <div className="export-entity-picker">
+              <div className="export-entity-picker-header">
+                <strong>選擇 Entity（{exportEntityIds.length}/{visibleEntities.length}）</strong>
+                <span>
+                  <button className="btn btn-xs" onClick={() => updateExportSelection(visibleEntities.map(e => e.id))}>全選</button>
+                  <button className="btn btn-xs" onClick={() => updateExportSelection([])}>清除</button>
+                </span>
+              </div>
+              <div className="export-entity-list">
+                {visibleEntities.map(entity => <label key={entity.id} className="export-entity-item">
+                  <input type="checkbox" checked={exportEntityIds.includes(entity.id)} onChange={() => {
+                    const ids = exportEntityIds.includes(entity.id) ? exportEntityIds.filter(id => id !== entity.id) : [...exportEntityIds, entity.id];
+                    updateExportSelection(ids);
+                  }} />
+                  <span>{entity.tableName || entity.name}</span>
+                </label>)}
+              </div>
             </div>
             <pre className="sql-output">{sqlOutput}</pre>
             <div className="sql-modal-actions">
