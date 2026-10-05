@@ -1002,25 +1002,27 @@ export default function ERDiagramEditor() {
                 </select>
               </label>
             </div>
-            <div className="export-entity-picker">
-              <div className="export-entity-picker-header">
-                <strong>選擇 Entity（{exportEntityIds.length}/{getExportEntities(exportModelId).length}）</strong>
-                <span>
-                  <button className="btn btn-xs" onClick={() => updateExportSelection(getExportEntities(exportModelId).map(e => e.id))}>全選</button>
-                  <button className="btn btn-xs" onClick={() => updateExportSelection([])}>清除</button>
-                </span>
+            <div className="sql-export-workspace">
+              <div className="export-entity-picker">
+                <div className="export-entity-picker-header">
+                  <strong>Entity（{exportEntityIds.length}/{getExportEntities(exportModelId).length}）</strong>
+                  <span>
+                    <button className="btn btn-xs" onClick={() => updateExportSelection(getExportEntities(exportModelId).map(e => e.id))}>全選</button>
+                    <button className="btn btn-xs" onClick={() => updateExportSelection([])}>清除</button>
+                  </span>
+                </div>
+                <div className="export-entity-list">
+                  {getExportEntities(exportModelId).slice().sort((a,b)=>a.name.localeCompare(b.name)).map(entity => <label key={entity.id} className="export-entity-item">
+                    <input type="checkbox" checked={exportEntityIds.includes(entity.id)} onChange={() => {
+                      const ids = exportEntityIds.includes(entity.id) ? exportEntityIds.filter(id => id !== entity.id) : [...exportEntityIds, entity.id];
+                      updateExportSelection(ids);
+                    }} />
+                    <span>{entity.tableName || entity.name}</span>
+                  </label>)}
+                </div>
               </div>
-              <div className="export-entity-list">
-                {getExportEntities(exportModelId).slice().sort((a,b)=>a.name.localeCompare(b.name)).map(entity => <label key={entity.id} className="export-entity-item">
-                  <input type="checkbox" checked={exportEntityIds.includes(entity.id)} onChange={() => {
-                    const ids = exportEntityIds.includes(entity.id) ? exportEntityIds.filter(id => id !== entity.id) : [...exportEntityIds, entity.id];
-                    updateExportSelection(ids);
-                  }} />
-                  <span>{entity.tableName || entity.name}</span>
-                </label>)}
-              </div>
+              <pre className="sql-output">{sqlOutput}</pre>
             </div>
-            <pre className="sql-output">{sqlOutput}</pre>
             <div className="sql-modal-actions">
               <button className="btn btn-primary btn-sm" onClick={handleCopySQL}>
                 📋 複製
