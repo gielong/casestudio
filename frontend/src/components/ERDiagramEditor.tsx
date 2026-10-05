@@ -236,6 +236,16 @@ export default function ERDiagramEditor() {
     [visibleEntities, activeSubmodel, selectedEntityId]
   );
 
+  const handleEntityListClick = useCallback((entityId: string) => {
+    const entity = visibleEntities.find(e => e.id === entityId);
+    if (!entity) return;
+    const pos = activeSubmodel?.layout[entity.id] ?? { x: entity.x, y: entity.y };
+    setSelectedEntityId(entity.id);
+    setMultiSelectedIds([entity.id]);
+    // Entity nodes are ~390px wide; center on the node rather than its top-left corner.
+    setCenter(pos.x + 195, pos.y + 80, { zoom: 1.15, duration: 350 });
+  }, [visibleEntities, activeSubmodel, setSelectedEntityId, setCenter]);
+
   const edges: Edge[] = useMemo(
     () =>
       visibleRelationships.map((rel) => {
@@ -637,6 +647,16 @@ export default function ERDiagramEditor() {
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', minHeight: 0 }}>
+      <aside className="er-entity-sidebar">
+        <div className="er-entity-sidebar-title">Entities</div>
+        <div className="er-entity-sidebar-list">
+          {visibleEntities.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(entity => (
+            <button key={entity.id} type="button" className={entity.id===selectedEntityId?'active':''} onClick={()=>handleEntityListClick(entity.id)} title={entity.name}>
+              {entity.name}
+            </button>
+          ))}
+        </div>
+      </aside>
       <div style={{ flex: 1, position: 'relative', background: activeSubmodel?.backgroundColor ?? 'var(--bg-base)' }}>
         {/* Toolbar */}
         <div className="er-toolbar">
