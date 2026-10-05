@@ -87,6 +87,7 @@ export default function FieldEditorModal({ entityId, onClose }: Props) {
                 <option value="postgresql">PostgreSQL</option>
               </select>
             </label>
+            <button className="btn btn-sm" onClick={async()=>{await navigator.clipboard.writeText(ddlResult.ddl)}}>📋 複製</button>
           </div>
           <pre className="ddl-preview">{ddlResult.ddl}</pre>
           {ddlResult.warnings.length>0&&<div className="ddl-warnings">{ddlResult.warnings.map((w,i)=><div key={i}>⚠️ {w}</div>)}</div>}
