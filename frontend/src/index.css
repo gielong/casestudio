@@ -2032,3 +2032,13 @@ body {
 .er-entity-sidebar-list button:hover{background:#e2e8f0}.er-entity-sidebar-list button.active{background:#dbeafe;color:#1d4ed8;font-weight:700}
 .export-entity-list{display:flex!important;flex-direction:column;gap:2px!important;max-height:260px}
 .export-entity-item{width:100%}
+
+
+/* SQL export: filters in one row, narrow Entity pane + wide SQL pane */
+.sql-export-options{display:flex!important;flex-direction:row!important;align-items:end;gap:14px;flex-wrap:nowrap}
+.sql-export-options label{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.sql-export-workspace{display:grid;grid-template-columns:210px minmax(0,1fr);gap:8px;min-height:420px;max-height:65vh;margin-top:8px}
+.sql-export-workspace .export-entity-picker{margin:0;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.sql-export-workspace .export-entity-picker-header{gap:4px;flex-wrap:wrap}
+.sql-export-workspace .export-entity-list{flex:1;max-height:none!important;overflow:auto}
+.sql-export-workspace .sql-output{margin:0;min-width:0;height:100%;max-height:65vh;overflow:auto}
