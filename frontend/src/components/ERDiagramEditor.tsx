@@ -17,7 +17,7 @@ import 'reactflow/dist/style.css';
 import { useStore, generateId } from '../store/useStore';
 import { saveToLocal, loadFromLocal, saveToFile, loadFromFile, createEmptyProject } from '../store/storage';
 import { generateDDL, type DDLTarget } from '../store/ddl-generator';
-import { pickAndParseDM2 } from '../store/dm2-parser';
+import { parseDM2, pickAndParseDM2 } from '../store/dm2-parser';
 import { validateERModel } from '../store/model-validator';
 import { generateAIContextMarkdown, generateAIContextJSON, type AIContextScope, type AIContextDepth } from '../store/ai-context-generator';
 import EntityNode from './EntityNode';
@@ -88,7 +88,6 @@ export default function ERDiagramEditor() {
   const [exportModelId, setExportModelId] = useState<string>('main');
   const [saveStatus, setSaveStatus] = useState<string>('');
   const [showSqlImportModal, setShowSqlImportModal] = useState(false);
-  const [showImportMenu, setShowImportMenu] = useState(false);
   const [showSubmodelManager, setShowSubmodelManager] = useState(false);
   const [dm2Report, setDm2Report] = useState<string | null>(null);
   const [pendingDm2, setPendingDm2] = useState<Awaited<ReturnType<typeof pickAndParseDM2>>>(null);
@@ -474,21 +473,43 @@ export default function ERDiagramEditor() {
     setTimeout(() => setSaveStatus(''), 2000);
   }, [erEntities, erRelationships, erSubmodels]);
 
-  // Import from file
+  // Unified project/model import. JSON/TXT are detected as project JSON; binary files use the legacy model parser.
   const handleImportFile = useCallback(async () => {
-    const data = await loadFromFile();
-    if (data) {
-      // Load entities and relationships into store
-      for (const entity of data.erEntities) {
-        addErEntity(entity);
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,.txt,.dm2';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        const lower = file.name.toLowerCase();
+        if (lower.endsWith('.json') || lower.endsWith('.txt')) {
+          const text = await file.text();
+          try {
+            const raw = JSON.parse(text);
+            if (!Array.isArray(raw.erEntities) || !Array.isArray(raw.erRelationships)) throw new Error('不是 CASE Studio 專案 JSON');
+            raw.erEntities.forEach(addErEntity);
+            raw.erRelationships.forEach(addErRelationship);
+            setErSubmodels(raw.erSubmodels ?? []);
+            setSaveStatus('✅ 已匯入專案檔案');
+            setTimeout(() => setSaveStatus(''), 2000);
+            return;
+          } catch (jsonError) {
+            // TXT may also contain a binary model saved with a neutral extension.
+            if (lower.endsWith('.json')) throw jsonError;
+          }
+        }
+        const result = parseDM2(await file.arrayBuffer());
+        const fieldCount = result.entities.reduce((sum, entity) => sum + entity.fields.length, 0);
+        setPendingDm2({ fileName: file.name, result });
+        setDm2Report([`檔案解析報告：${file.name}`,'',`Entity：${result.entities.length}`,`Field：${fieldCount}`,`Relationship：${result.relationships.length}`,`Submodel：${result.submodels.length}`,'',result.warnings.length ? '警告 / 尚未完全解析：' : '警告：無',...result.warnings.map(w => `- ${w}`)].join('\\n'));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        setPendingDm2(null);
+        setDm2Report(`檔案匯入失敗\\n\\n${message}`);
       }
-      for (const rel of data.erRelationships) {
-        addErRelationship(rel);
-      }
-      setErSubmodels(data.erSubmodels ?? []);
-      setSaveStatus('✅ 已匯入檔案');
-      setTimeout(() => setSaveStatus(''), 2000);
-    }
+    };
+    input.click();
   }, [addErEntity, addErRelationship, setErSubmodels]);
 
   // Import legacy CASE Studio 2 DM2 / ~m2 locally in the browser
@@ -685,16 +706,8 @@ export default function ERDiagramEditor() {
           <button className="btn btn-primary btn-sm" onClick={handleAddEntity}>
             + 新增 Entity
           </button>
-          <div className="submodel-menu-wrap">
-            <button className="btn btn-sm" onClick={() => setShowImportMenu(v => !v)} title="匯入專案、模型或 SQL DDL">
-              📥 匯入 ▾
-            </button>
-            {showImportMenu && <div className="submodel-menu">
-              <button type="button" onClick={() => { setShowImportMenu(false); handleImportFile(); }}>📁 專案檔案</button>
-              <button type="button" onClick={() => { setShowImportMenu(false); setShowSqlImportModal(true); }}>🧾 SQL DDL</button>
-              <button type="button" onClick={() => { setShowImportMenu(false); handleImportDM2(); }}>📦 其他模型檔案</button>
-            </div>}
-          </div>
+          <button className="btn btn-sm" onClick={handleImportFile} title="匯入 .json、.txt 或模型檔案">📥 匯入</button>
+          <button className="btn btn-sm" onClick={() => setShowSqlImportModal(true)} title="貼上 SQL DDL 匯入">🧾 匯入 SQL</button>
           <button className="btn btn-sm" onClick={handleExportSQL}>
             📤 匯出 SQL
           </button>
