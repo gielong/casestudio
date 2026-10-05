@@ -6,6 +6,7 @@ import ERDiagramEditor from './components/ERDiagramEditor';
 import RequirementsManager from './components/RequirementsManager';
 import UseCaseEditor from './components/UseCaseEditor';
 import FlowChartEditor from './components/FlowChartEditor';
+import CodeGenerator from './components/CodeGenerator';
 import { useStore, type Page } from './store/useStore';
 import { loadFromLocal, createEmptyProject, saveToLocal } from './store/storage';
 
@@ -18,6 +19,7 @@ const NAV_ITEMS: { page: Page; label: string; icon: string }[] = [
   { page: 'requirements', label: '需求', icon: '📋' },
   { page: 'usecase', label: '用例圖', icon: '👤' },
   { page: 'flowchart', label: '流程圖', icon: '🔄' },
+  { page: 'codegen', label: 'C# 產碼', icon: '⌨️' },
   { page: 'versions', label: '版本', icon: '📦' },
   { page: 'documents', label: '文件', icon: '📄' },
   { page: 'audit', label: '日誌', icon: '📝' },
@@ -104,6 +106,8 @@ function App() {
         return <UseCaseEditor />;
       case 'flowchart':
         return <FlowChartEditor />;
+      case 'codegen':
+        return <CodeGenerator />;
       case 'versions':
         return <div className="placeholder">版本控管（待實作）</div>;
       case 'documents':
@@ -138,7 +142,7 @@ function App() {
               </button>
             ))}
           </div>
-          <div className="sidebar-version">v2026.10.05.018</div>
+          <div className="sidebar-version">v2026.10.05.019</div>
           <button
             className="sidebar-toggle"
             onClick={() => setSidebarOpen(!sidebarOpen)}
