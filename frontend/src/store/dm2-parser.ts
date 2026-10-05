@@ -251,37 +251,30 @@ export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
     const targetEntity = numericEntityMap.get(targetEntityNumericId);
     if (!sourceEntity || !targetEntity) return;
 
-    // ED03 binds a field to the relationship. A relationship may bind fields on either
-    // side, and composite relationships may contain multiple field pairs. Do not assume
-    // that only the target entity owns ED03 (that lost cPointUse.ChangeItem and the
-    // cOffersComboSwap composite PFK fields).
-    const relationEntries = [...numericFieldMap.values()].filter(x => x.relationId === numericRelId);
-    let targetEntry = relationEntries.find(x => x.entity.id === targetEntity.id);
-    let sourceEntry = relationEntries.find(x => x.entity.id === sourceEntity.id);
+    // ED03 binds target fields to a relationship. Composite relationships can bind
+    // multiple fields to the same relationship id, so resolve every target field.
+    const targetEntries = [...numericFieldMap.values()].filter(x => x.entity.id === targetEntity.id && x.relationId === numericRelId);
+    const sourceEntries = [...numericFieldMap.values()].filter(x => x.entity.id === sourceEntity.id && x.relationId === numericRelId);
+    const sourcePkEntries = [...numericFieldMap.values()].filter(x => x.entity.id === sourceEntity.id && x.field.isPrimaryKey);
+    const pairs: { source: NonNullable<typeof sourceEntries[number]>; target: NonNullable<typeof targetEntries[number]> }[] = [];
 
-    // Resolve the opposite side by the explicit EE03 field reference first.
-    if (targetEntry && !sourceEntry && targetEntry.referencedFieldNumericId != null) {
-      const direct = numericFieldMap.get(targetEntry.referencedFieldNumericId);
-      if (direct?.entity.id === sourceEntity.id) sourceEntry = direct;
+    for (const targetEntry of targetEntries) {
+      let sourceEntry = sourceEntries.find(x => x.field.name.toLowerCase() === targetEntry.field.name.toLowerCase());
+      if (!sourceEntry) sourceEntry = [...numericFieldMap.values()].find(x => x.entity.id === sourceEntity.id && x.field.name.toLowerCase() === targetEntry.field.name.toLowerCase());
+      // Some relationships intentionally use different names (e.g. ChangeItem -> ItemId).
+      // If the referenced entity has exactly one PK, that PK is the unambiguous parent field.
+      if (!sourceEntry && sourcePkEntries.length === 1) sourceEntry = sourcePkEntries[0];
+      if (sourceEntry) {
+        targetEntry.field.isForeignKey = true;
+        targetEntry.field.referencedEntity = sourceEntity.id;
+        targetEntry.field.referencedField = sourceEntry.field.id;
+        pairs.push({ source: sourceEntry, target: targetEntry });
+      }
     }
-    if (sourceEntry && !targetEntry && sourceEntry.referencedFieldNumericId != null) {
-      const direct = numericFieldMap.get(sourceEntry.referencedFieldNumericId);
-      if (direct?.entity.id === targetEntity.id) targetEntry = direct;
-    }
 
-    // Older files may omit a resolvable EE03 reference; same-name matching is fallback only.
-    if (targetEntry && !sourceEntry) sourceEntry = [...numericFieldMap.values()].find(x => x.entity.id === sourceEntity.id && x.field.name.toLowerCase() === targetEntry!.field.name.toLowerCase());
-    if (sourceEntry && !targetEntry) targetEntry = [...numericFieldMap.values()].find(x => x.entity.id === targetEntity.id && x.field.name.toLowerCase() === sourceEntry!.field.name.toLowerCase());
-
-    const relationshipType: 'foreignKey' | 'informative' = targetEntry && sourceEntry ? 'foreignKey' : 'informative';
-
-    if (targetEntry && sourceEntry) {
-      // PK comes from the field's E903 flag. Relationships must never invent a PK.
-      // The referencing side becomes FK; an E903 PK therefore naturally becomes PFK.
-      targetEntry.field.isForeignKey = true;
-      targetEntry.field.referencedEntity = sourceEntity.id;
-      targetEntry.field.referencedField = sourceEntry.field.id;
-    }
+    const sourceEntry = pairs[0]?.source;
+    const targetEntry = pairs[0]?.target;
+    const relationshipType: 'foreignKey' | 'informative' = pairs.length ? 'foreignKey' : 'informative';
 
     // Always preserve the entity-level relationship line. Some DM2 relationships (views,
     // conceptual links, older records) have no ED03 field binding at all.
