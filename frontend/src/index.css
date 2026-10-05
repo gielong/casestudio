@@ -2042,3 +2042,9 @@ body {
 .sql-export-workspace .export-entity-picker-header{gap:4px;flex-wrap:wrap}
 .sql-export-workspace .export-entity-list{flex:1;max-height:none!important;overflow:auto}
 .sql-export-workspace .sql-output{margin:0;min-width:0;height:100%;max-height:65vh;overflow:auto}
+
+
+/* Entity Designer DDL toolbar: label, selector and copy button on one line */
+.ddl-target-toolbar{display:flex!important;flex-direction:row!important;align-items:center!important;gap:8px!important}
+.ddl-target-toolbar label{display:flex!important;flex-direction:row!important;align-items:center!important;gap:6px!important;margin:0!important;white-space:nowrap}
+.ddl-target-toolbar select,.ddl-target-toolbar .btn{margin:0!important}
