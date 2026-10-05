@@ -1983,3 +1983,10 @@ body {
 .entity-field .field-type{font-size:13px;font-weight:650}
 .entity-field .field-constraints{font-size:10px}
 .entity-field .field-description{font-size:11px;color:#9ca3af}
+
+
+/* Fix Entity width: fixed compact columns instead of fr tracks expanding with long descriptions */
+.entity-node{width:360px;min-width:360px;max-width:360px}
+.entity-field{grid-template-columns:150px 105px minmax(0,1fr);padding:3px 8px;column-gap:5px;overflow:hidden}
+.entity-field .field-left,.entity-field .field-right,.entity-field .field-description{min-width:0;overflow:hidden}
+.entity-field .field-name,.entity-field .field-logical-name,.entity-field .field-type,.entity-field .field-constraints{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
