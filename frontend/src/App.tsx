@@ -26,7 +26,7 @@ const NAV_ITEMS: { page: Page; label: string; icon: string }[] = [
 function App() {
   const { activePage, setActivePage, erEntities, erRelationships, erSubmodels, setErEntities, setErRelationships, setErSubmodels } = useStore();
   const [isMobile, setIsMobile] = useState(() => window.matchMedia(MOBILE_QUERY).matches);
-  const [sidebarOpen, setSidebarOpen] = useState(() => !window.matchMedia(MOBILE_QUERY).matches);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState('');
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
@@ -138,7 +138,7 @@ function App() {
               </button>
             ))}
           </div>
-          <div className="sidebar-version">v2026.10.05.012</div>
+          <div className="sidebar-version">v2026.10.05.013</div>
           <button
             className="sidebar-toggle"
             onClick={() => setSidebarOpen(!sidebarOpen)}
