@@ -251,23 +251,33 @@ export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
     const targetEntity = numericEntityMap.get(targetEntityNumericId);
     if (!sourceEntity || !targetEntity) return;
 
-    // ED03 on a target field identifies the relationship. EE03 is not globally a field id
-    // in all CASE Studio 2 files (vPOS proves this), so prefer same-name source fields.
-    const targetEntry = [...numericFieldMap.values()].find(x => x.entity.id === targetEntity.id && x.relationId === numericRelId);
-    let sourceEntry = targetEntry
-      ? [...numericFieldMap.values()].find(x => x.entity.id === sourceEntity.id && x.field.name.toLowerCase() === targetEntry.field.name.toLowerCase())
-      : undefined;
+    // ED03 binds a field to the relationship. A relationship may bind fields on either
+    // side, and composite relationships may contain multiple field pairs. Do not assume
+    // that only the target entity owns ED03 (that lost cPointUse.ChangeItem and the
+    // cOffersComboSwap composite PFK fields).
+    const relationEntries = [...numericFieldMap.values()].filter(x => x.relationId === numericRelId);
+    let targetEntry = relationEntries.find(x => x.entity.id === targetEntity.id);
+    let sourceEntry = relationEntries.find(x => x.entity.id === sourceEntity.id);
 
-    // Some legacy files do use a directly resolvable field reference; keep it as fallback.
-    if (!sourceEntry && targetEntry?.referencedFieldNumericId != null) {
+    // Resolve the opposite side by the explicit EE03 field reference first.
+    if (targetEntry && !sourceEntry && targetEntry.referencedFieldNumericId != null) {
       const direct = numericFieldMap.get(targetEntry.referencedFieldNumericId);
       if (direct?.entity.id === sourceEntity.id) sourceEntry = direct;
     }
+    if (sourceEntry && !targetEntry && sourceEntry.referencedFieldNumericId != null) {
+      const direct = numericFieldMap.get(sourceEntry.referencedFieldNumericId);
+      if (direct?.entity.id === targetEntity.id) targetEntry = direct;
+    }
+
+    // Older files may omit a resolvable EE03 reference; same-name matching is fallback only.
+    if (targetEntry && !sourceEntry) sourceEntry = [...numericFieldMap.values()].find(x => x.entity.id === sourceEntity.id && x.field.name.toLowerCase() === targetEntry!.field.name.toLowerCase());
+    if (sourceEntry && !targetEntry) targetEntry = [...numericFieldMap.values()].find(x => x.entity.id === targetEntity.id && x.field.name.toLowerCase() === sourceEntry!.field.name.toLowerCase());
 
     const relationshipType: 'foreignKey' | 'informative' = targetEntry && sourceEntry ? 'foreignKey' : 'informative';
 
     if (targetEntry && sourceEntry) {
-      sourceEntry.field.isPrimaryKey = true;
+      // PK comes from the field's E903 flag. Relationships must never invent a PK.
+      // The referencing side becomes FK; an E903 PK therefore naturally becomes PFK.
       targetEntry.field.isForeignKey = true;
       targetEntry.field.referencedEntity = sourceEntity.id;
       targetEntry.field.referencedField = sourceEntry.field.id;
