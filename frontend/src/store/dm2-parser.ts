@@ -184,17 +184,18 @@ export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
     const scale = readU32Property(bytes, view, [0xf3, 0x03], start, end);
     const defaultValue = readLengthString(bytes, view, [0xf8, 0x03], start, end);
     const dataType = TYPE_MAP[typeCode] ?? `DM2_TYPE_${typeCode}`;
-    // Confirmed against WEBERP(2).dm2: E903 is the field PK boolean.
-    // F403 is a different field flag and is 1 on many ordinary columns, so using it
-    // incorrectly promoted ordinary fields to PK. Examples: ShiftPayId/CashFlowId have
-    // E903=1 while ordinary Amount/Memo fields have E903=0.
+    // Confirmed against WEBERP(2).dm2 field records:
+    // E903 = Primary Key boolean; F403 = Required / NOT NULL boolean.
+    // Example cReceipt: ReceiptId has E903=1/F403=1, while rLocal has E903=0/F403=0
+    // and required fields such as rDate/updater have E903=0/F403=1.
     const isPrimaryKey = readByteProperty(bytes, [0xe9, 0x03], start, end) === 1;
+    const isNotNull = readByteProperty(bytes, [0xf4, 0x03], start, end) === 1;
     const field: ERField = {
       id: `dm2-field-${parentId}-${index + 1}`, name, dataType,
       length: ['CHAR','VARCHAR','NCHAR','NVARCHAR','VARBINARY'].includes(dataType) ? lp : null,
       precision: ['DECIMAL','NUMERIC'].includes(dataType) ? lp : null,
       scale: ['DECIMAL','NUMERIC'].includes(dataType) ? scale : null, isPrimaryKey, isForeignKey: false,
-      isNullable: true, isUnique: false, hasDefault: !!defaultValue, defaultValue,
+      isNullable: !isNotNull, isUnique: false, hasDefault: !!defaultValue, defaultValue,
       referencedEntity: '', referencedField: '', notes: readLengthString(bytes, view, [0xfd, 0x03], start, end),
     };
     entity.fields.push(field);
@@ -373,7 +374,7 @@ export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
   const submodelLayoutCount = submodels.reduce((sum, sm) => sum + Object.keys(sm.layout).length, 0);
   warnings.push(`Layout：Main Model ${mainLayoutCount} 個、Submodel ${submodelLayoutCount} 個原始位置；缺少座標的 Entity 已依 Relationship 自動產生放射狀 Layout，DM2 原始座標維持優先且放大 200%。`);
   warnings.push(`Index：偵測到 ${indexStarts.length} 個 Index、${indexColumnStarts.length} 個 Index Column，成功匯入 ${importedIndexCount} 個；Unique/Clustered flag 尚未確認，因此目前不猜測。`);
-  warnings.push('Length / Precision / Scale 已依確認的 F203 / F303 屬性解析；Nullable、Identity 與部分舊版 DM2 屬性仍在補強。');
+  warnings.push('Length / Precision / Scale 與 NOT NULL 已依確認的 F203 / F303 / F403 屬性解析；Identity 與部分舊版模型屬性仍在補強。');
   return { entities, relationships, submodels, warnings };
 }
 
