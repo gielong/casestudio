@@ -22,7 +22,7 @@ import {
   type UseCaseSystemBoundary,
 } from '../api/client';
 
-export type Page = 'connect' | 'schema' | 'er-diagram' | 'requirements' | 'usecase' | 'flowchart' | 'versions' | 'documents' | 'audit';
+export type Page = 'connect' | 'schema' | 'er-diagram' | 'requirements' | 'usecase' | 'flowchart' | 'codegen' | 'versions' | 'documents' | 'audit';
 
 interface AppState {
   // Schema
