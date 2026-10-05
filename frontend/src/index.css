@@ -2022,3 +2022,13 @@ body {
 .export-entity-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px 10px;max-height:180px;overflow:auto;padding:2px}
 .export-entity-item{display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap;overflow:hidden}
 .export-entity-item span{overflow:hidden;text-overflow:ellipsis}
+
+
+/* ER entity navigator + single-column SQL export list */
+.er-entity-sidebar{width:165px;min-width:165px;height:100%;display:flex;flex-direction:column;background:#f8fafc;border-right:1px solid #cbd5e1;color:#1f2937;overflow:hidden}
+.er-entity-sidebar-title{padding:7px 9px;font-size:12px;font-weight:700;border-bottom:1px solid #cbd5e1}
+.er-entity-sidebar-list{flex:1;overflow:auto;padding:3px}
+.er-entity-sidebar-list button{display:block;width:100%;border:0;background:transparent;text-align:left;padding:3px 6px;border-radius:3px;font-size:11px;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.er-entity-sidebar-list button:hover{background:#e2e8f0}.er-entity-sidebar-list button.active{background:#dbeafe;color:#1d4ed8;font-weight:700}
+.export-entity-list{display:flex!important;flex-direction:column;gap:2px!important;max-height:260px}
+.export-entity-item{width:100%}
