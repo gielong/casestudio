@@ -2013,3 +2013,12 @@ body {
 .entity-node{width:390px;min-width:390px;max-width:390px}
 .entity-field{grid-template-columns:minmax(0,1.15fr) minmax(0,.82fr) minmax(0,.9fr)!important}
 .entity-field .field-description{display:block!important;font-size:10px!important;color:#6b7280!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+
+/* SQL export entity selector */
+.export-entity-picker{margin:8px 0;border:1px solid #cbd5e1;border-radius:6px;padding:8px;background:#fff;color:#1f2937}
+.export-entity-picker-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;font-size:12px}
+.export-entity-picker-header span{display:flex;gap:4px}
+.export-entity-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px 10px;max-height:180px;overflow:auto;padding:2px}
+.export-entity-item{display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap;overflow:hidden}
+.export-entity-item span{overflow:hidden;text-overflow:ellipsis}
