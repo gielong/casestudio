@@ -76,7 +76,7 @@ export default function ERDiagramEditor() {
     setSubmodelEntityPosition,
   } = useStore();
 
-  const { project } = useReactFlow();
+  const { project, fitView } = useReactFlow();
 
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [editingRel, setEditingRel] = useState<ERRelationship | null>(null);
@@ -516,8 +516,11 @@ export default function ERDiagramEditor() {
     setSaveStatus(`✅ 已匯入：${result.entities.length} Entity / ${fieldCount} Field / ${result.relationships.length} Relationship`);
     setPendingDm2(null);
     setDm2Report(null);
+    // Imported models can contain entities far outside the current viewport (for example
+    // cUseLimit in WEBERP(2)); refit after Zustand/React Flow has rendered the new nodes.
+    setTimeout(() => fitView({ padding: 0.08, duration: 300 }), 80);
     setTimeout(() => setSaveStatus(''), 5000);
-  }, [pendingDm2, addErEntity, addErRelationship, setErSubmodels]);
+  }, [pendingDm2, addErEntity, addErRelationship, setErSubmodels, fitView]);
 
   const handleCopyDM2Report = useCallback(async () => {
     if (!dm2Report) return;
