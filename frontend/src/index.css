@@ -2007,3 +2007,9 @@ body {
 .entity-field .field-type{font-size:10.5px!important;font-weight:500!important;line-height:1.08!important}
 .entity-field .field-constraints{font-size:9.5px!important;font-weight:600!important;line-height:1.08!important}
 .entity-field .field-description{display:none}
+
+
+/* Restore Description as the third compact Entity column */
+.entity-node{width:390px;min-width:390px;max-width:390px}
+.entity-field{grid-template-columns:minmax(0,1.15fr) minmax(0,.82fr) minmax(0,.9fr)!important}
+.entity-field .field-description{display:block!important;font-size:10px!important;color:#6b7280!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
