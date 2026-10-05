@@ -12,5 +12,69 @@ const n=(f:ERField)=>f.columnName||f.name;
 function comments(s:string|undefined,p:string){return s?String(s).replace(/\r\n/g,'\n').split('\n').map(x=>p+x).join('\r\n')+'\r\n':'';}
 function objectCode(e:EREntity,ns:string){const t=e.tableName||e.name;const props=e.fields.map(f=>'\t\t/// <summary>\n\t\t/// '+n(f)+' 的摘要描述\n'+comments(f.notes,'\t\t/// ')+'\t\t/// </summary>\n\t\tpublic '+grnType(f)+' '+n(f)+' { get; set; } = '+grnDefault(f)+';\n').join('');const iface=e.fields.map(f=>'\t\t'+grnType(f)+' '+n(f)+' { get; set; }\n').join('');return 'using System;\nusing System.Collections;\n\nnamespace '+ns+'.ObjectLayer.Schema\n{\n\t/// <summary>\n\t/// T'+t+' 的摘要描述\n'+comments(e.notes,'\t/// ')+'\t/// </summary>\n    public partial class T'+t+' : I'+t+'\n    {\n'+props+'    }\n\tpublic interface I'+t+'\n\t{\n'+iface+'\t}\n}\n';}
 function dataCode(e:EREntity,ns:string){const t=e.tableName||e.name, names=e.fields.map(n);const enums=names.map(x=>'\t\t'+x).join(',\n');const cond=names.map(x=>'            AddCond(SqlBuilder, stint, '+t+'Field.'+x+');\n').join('');const ss=e.fields.map(f=>'            SetParameter(DBBase, stint, '+t+'Field.'+n(f)+', DbType.'+grnType(f)+');\n').join('');const so=e.fields.map(f=>'            SetParameter(DBBase, '+t+'Field.'+n(f)+', DbType.'+grnType(f)+', (obj.'+n(f)+' != '+grnDefault(f)+' ? (Object)obj.'+n(f)+' : '+grnDbDefault(f)+'));\n').join('');const ad=names.map(x=>'            SqlBuilder.AddDataField(GetFieldName('+t+'Field.'+x+'));\n').join('');const ex=e.fields.map(f=>'\t\t\t\tobj.'+n(f)+' = To'+grnType(f)+'(Reader[GetFieldName('+t+'Field.'+n(f)+')], '+grnDefault(f)+');\n').join('');const pks=e.fields.filter(f=>f.isPrimaryKey).sort((a,b)=>(gf(a).primaryKeyOrder||0)-(gf(b).primaryKeyOrder||0));const ak=pks.map(f=>'            SqlBuilder.AddKeyField(GetFieldName('+t+'Field.'+n(f)+'));\n').join('');const sk=pks.map(f=>'            DBBase.SetParameter(GetKeyParamName('+t+'Field.'+n(f)+'), DbType.'+grnType(f)+', (obj.'+n(f)+' != '+grnDefault(f)+' ? (Object)obj.'+n(f)+' : DBNull.Value));\n').join('');const ident=e.fields.filter(f=>gf(f).isIdentity).map(f=>'\n        #region identity insert into\n        protected override void GetInsertSqlText(UpdateSqlBuilder SqlBuilder, IDataBase DBBase)\n        {\n            string p'+n(f)+' = GetParamName('+t+'Field.'+n(f)+');\n            DBBase.UpDateText = SqlBuilder.GetInsertSqlText() + ";set " + p'+n(f)+' + " = @@IDENTITY;";\n            DBBase.SetOutParameter(p'+n(f)+', DbType.'+grnType(f)+');\n        }\n        protected override void SetOutProperties(IDataBase DBBase, '+t+' obj)\n        {\n            obj.'+n(f)+' = To'+grnType(f)+'(DBBase.GetParameter(GetParamName('+t+'Field.'+n(f)+')));\n        }\n        #endregion').join('');return 'using System;\nusing System.Data;\nusing System.Collections.ObjectModel;\nusing PioLibraryCore;\nusing PioLibraryCore.DataAccessLayer;\nusing PioLibraryCore.DataAccessLayer.Schema;\nusing '+ns+'.ObjectLayer.Schema;\n\nnamespace '+ns+'.DataAccessLayer.Schema\n{\n    [Flags]\n    public enum '+t+'Field\n    {\n'+enums+'\n    }\n    public partial class '+t+'DataAccess<'+t+'> : DataAccess<TStint<'+t+'Field>, '+t+'Field, '+t+'>\n\t\twhere '+t+' : I'+t+', new()\n    {\n        public '+t+'DataAccess() { this.TableName = "'+t+'"; }\n        #region protected override\n        protected override void AddConds(BaseSqlBuilder SqlBuilder, TStint<'+t+'Field> stint)\n        {\n'+cond+'        }\n        protected override void SetParameter(IDataBase DBBase, TStint<'+t+'Field> stint)\n        {\n'+ss+'        }\n        protected override void SetParameter(IDataBase DBBase, '+t+' obj)\n        {\n'+so+'        }\n        protected override void AddDataField(UpdateSqlBuilder SqlBuilder)\n        {\n'+ad+'        }\n        public override Collection<'+t+'> ExtractObjectFromReader(IDataReader Reader)\n        {\n\t\t\tCollection<'+t+'> Result = new Collection<'+t+'>();\n            while (Reader.Read())\n            {\n                '+t+' obj = new '+t+'();\n'+ex+'\t\t\t\tResult.Add(obj);\n            }\n\t\t\treturn Result;\n        }\n        #endregion\n        #region update\n        protected override void AddUpdateKeyField(UpdateSqlBuilder SqlBuilder)\n        {\n'+ak+'        }\n        protected override void SetUpdateKeyParameter(IDataBase DBBase, '+t+' obj)\n        {\n'+sk+'        }\n        #endregion'+ident+'\n    }\n}\n';}
-function adapterCode(e:EREntity,ns:string){const t=e.tableName||e.name;return 'using System;\nusing System.Collections.ObjectModel;\nusing PioLibraryCore;\nusing PioLibraryCore.DataAccessLayer;\nusing '+ns+'.ObjectLayer.Schema;\nusing '+ns+'.DataAccessLayer.Schema;\n\nnamespace '+ns+'.DataAccessLayer.Adapter\n{\n    internal partial class '+t+'Adapter : IDisposable\n    {\n        public void Dispose() { }\n        internal bool Insert<'+t+'>('+t+' obj, IDataBase DBBase) where '+t+' : I'+t+', new()\n        { using ('+t+'DataAccess<'+t+'> DataAccess = new '+t+'DataAccess<'+t+'>()) return DataAccess.InserObject(obj, DBBase); }\n        internal bool Update<'+t+'>('+t+' obj, IDataBase DBBase) where '+t+' : I'+t+', new()\n        { using ('+t+'DataAccess<'+t+'> DataAccess = new '+t+'DataAccess<'+t+'>()) return DataAccess.UpdateObject(obj, DBBase); }\n        internal bool Delete(TStint<'+t+'Field> Stint, IDataBase DBBase)\n        { using ('+t+'DataAccess<T'+t+'> DataAccess = new '+t+'DataAccess<T'+t+'>()) return DataAccess.DeleteObject(Stint, DBBase); }\n        internal '+t+' Get'+t+'<'+t+'>(TStint<'+t+'Field> Stint, IDataBase DBBase) where '+t+' : I'+t+', new()\n        { using ('+t+'DataAccess<'+t+'> DataAccess = new '+t+'DataAccess<'+t+'>()) return DataAccess.GetObject(Stint, DBBase); }\n        internal Collection<'+t+'> Get'+t+'s<'+t+'>(IDataBase DBBase) where '+t+' : I'+t+', new()\n        { using ('+t+'DataAccess<'+t+'> DataAccess = new '+t+'DataAccess<'+t+'>()) { TStint<'+t+'Field> Stint = new TStint<'+t+'Field>(); return DataAccess.GetObjects(Stint, DBBase); } }\n    }\n}\n';}
+function adapterCode(e:EREntity,ns:string){const t=e.tableName||e.name;return 'using System;\n' +
+'using System.Collections.ObjectModel;\n' +
+'using PioLibraryCore;\n' +
+'using PioLibraryCore.DataAccessLayer;\n' +
+'using '+ns+'.ObjectLayer.Schema;\n' +
+'using '+ns+'.DataAccessLayer.Schema;\n\n' +
+'namespace '+ns+'.DataAccessLayer.Adapter\n' +
+'{\n' +
+'    internal partial class '+t+'Adapter : IDisposable\n' +
+'    {\n' +
+'        public void Dispose()\n' +
+'        {\n' +
+'        }\n\n' +
+'        internal bool Insert<'+t+'>('+t+' obj, IDataBase DBBase)\n' +
+'            where '+t+' : I'+t+', new()\n' +
+'        {\n' +
+'            bool Result = false;\n' +
+'            using ('+t+'DataAccess<'+t+'> DataAccess = new '+t+'DataAccess<'+t+'>())\n' +
+'            {\n' +
+'                Result = DataAccess.InserObject(obj, DBBase);\n' +
+'            }\n' +
+'            return Result;\n' +
+'        }\n\n' +
+'        internal bool Update<'+t+'>('+t+' obj, IDataBase DBBase)\n' +
+'            where '+t+' : I'+t+', new()\n' +
+'        {\n' +
+'            bool Result = false;\n' +
+'            using ('+t+'DataAccess<'+t+'> DataAccess = new '+t+'DataAccess<'+t+'>())\n' +
+'            {\n' +
+'                Result = DataAccess.UpdateObject(obj, DBBase);\n' +
+'            }\n' +
+'            return Result;\n' +
+'        }\n\n' +
+'        internal bool Delete(TStint<'+t+'Field> Stint, IDataBase DBBase)\n' +
+'        {\n' +
+'            bool Result = false;\n' +
+'            using ('+t+'DataAccess<T'+t+'> DataAccess = new '+t+'DataAccess<T'+t+'>())\n' +
+'            {\n' +
+'                Result = DataAccess.DeleteObject(Stint, DBBase);\n' +
+'            }\n' +
+'            return Result;\n' +
+'        }\n\n' +
+'        internal '+t+' Get'+t+'<'+t+'>(TStint<'+t+'Field> Stint, IDataBase DBBase)\n' +
+'            where '+t+' : I'+t+', new()\n' +
+'        {\n' +
+'            '+t+' Result = default('+t+');\n' +
+'            using ('+t+'DataAccess<'+t+'> DataAccess = new '+t+'DataAccess<'+t+'>())\n' +
+'            {\n' +
+'                Result = DataAccess.GetObject(Stint, DBBase);\n' +
+'            }\n' +
+'            return Result;\n' +
+'        }\n\n' +
+'        internal Collection<'+t+'> Get'+t+'s<'+t+'>(IDataBase DBBase)\n' +
+'            where '+t+' : I'+t+', new()\n' +
+'        {\n' +
+'            Collection<'+t+'> Result = null;\n' +
+'            using ('+t+'DataAccess<'+t+'> DataAccess = new '+t+'DataAccess<'+t+'>())\n' +
+'            {\n' +
+'                TStint<'+t+'Field> Stint = new TStint<'+t+'Field>();\n' +
+'                Result = DataAccess.GetObjects(Stint, DBBase);\n' +
+'            }\n' +
+'            return Result;\n' +
+'        }\n' +
+'    }\n' +
+'}\n';}
 export default function CodeGenerator(){const entities=useStore(s=>s.erEntities),[selected,setSelected]=useState(''),[ns,setNs]=useState('DemoProject'),[type,setType]=useState<OutputType>('object');const sorted=useMemo(()=>entities.slice().sort((a,b)=>a.name.localeCompare(b.name)),[entities]),entity=entities.find(e=>e.id===(selected||sorted[0]?.id));const code=entity?(type==='object'?objectCode(entity,ns.trim()||'DemoProject'):type==='adapter'?adapterCode(entity,ns.trim()||'DemoProject'):dataCode(entity,ns.trim()||'DemoProject')):'';const download=()=>{if(!entity)return;const t=entity.tableName||entity.name,a=document.createElement('a'),url=URL.createObjectURL(new Blob([code],{type:'text/plain;charset=utf-8'}));a.href=url;a.download=type==='object'?'T'+t+'.cs':type==='adapter'?t+'Adapter.cs':t+'DataAccess.cs';a.click();URL.revokeObjectURL(url)};return <div className="codegen-page"><div className="codegen-toolbar"><strong>C# Code Generator</strong><label>Namespace <input value={ns} onChange={e=>setNs(e.target.value)}/></label><select value={type} onChange={e=>setType(e.target.value as OutputType)}><option value="object">ObjectLayer</option><option value="dataAccess">DataAccessLayer / Schema</option><option value="adapter">DataAccessLayer / Adapter</option></select><button className="btn btn-sm" onClick={()=>navigator.clipboard.writeText(code)}>📋 複製</button><button className="btn btn-primary btn-sm" onClick={download}>⬇️ 下載 .cs</button></div><div className="codegen-workspace"><aside><div className="codegen-title">Entity ({sorted.length})</div>{sorted.map(e=><button key={e.id} className={entity?.id===e.id?'active':''} onClick={()=>setSelected(e.id)}><strong>{e.name}</strong><small>{e.tableName||e.name} · {e.fields.length} fields</small></button>)}</aside><pre className="codegen-preview">{code||'// CASE Studio 目前沒有 Entity'}</pre></div></div>}
