@@ -336,8 +336,8 @@ export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
       }
     }
     // CASE Studio 2 uses a denser canvas than the web editor. Expand imported
-    // coordinates to 200% so large entities do not overlap after rendering.
-    sm.layout[entity.id] = { x: x * 2, y: y * 2 };
+    // coordinates to 150% so large entities do not overlap after rendering.
+    sm.layout[entity.id] = { x: x * 1.5, y: y * 1.5 };
   });
 
   // Some legacy files omit the 0x73 placement record for an entity in a submodel even
@@ -393,7 +393,7 @@ export function parseDM2(buffer: ArrayBuffer): DM2ImportResult {
   if (relStarts.length && relationships.length !== relStarts.length) warnings.push(`偵測到 ${relStarts.length} 個 Relationship，成功匯入 ${relationships.length} 個。`);
   const mainLayoutCount = mainModel ? Object.keys(mainModel.layout).length : 0;
   const submodelLayoutCount = submodels.reduce((sum, sm) => sum + Object.keys(sm.layout).length, 0);
-  warnings.push(`Layout：Main Model ${mainLayoutCount} 個、Submodel ${submodelLayoutCount} 個原始位置；缺少座標的 Entity 已依 Relationship 自動產生放射狀 Layout，DM2 原始座標維持優先且放大 200%。`);
+  warnings.push(`Layout：Main Model ${mainLayoutCount} 個、Submodel ${submodelLayoutCount} 個原始位置；缺少座標的 Entity 已依 Relationship 自動產生放射狀 Layout，DM2 原始座標維持優先且放大 150%。`);
   warnings.push(`Index：偵測到 ${indexStarts.length} 個 Index、${indexColumnStarts.length} 個 Index Column，成功匯入 ${importedIndexCount} 個；Unique/Clustered flag 尚未確認，因此目前不猜測。`);
   warnings.push('Length / Precision / Scale 與 NOT NULL 已依確認的 F203 / F303 / F403 屬性解析；Identity 與部分舊版模型屬性仍在補強。');
   return { entities, relationships, submodels, warnings };
