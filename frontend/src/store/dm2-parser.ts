@@ -46,8 +46,9 @@ function readLengthString(bytes: Uint8Array, view: DataView, marker: number[], f
 function readStringListProperty(bytes: Uint8Array, view: DataView, marker: number[], from: number, to: number) {
   const p = find(bytes, marker, from, to);
   if (p < 0 || p + marker.length >= to) return '';
-  const count = bytes[p + marker.length];
-  let offset = p + marker.length + 1;
+  if (p + marker.length + 4 > to) return '';
+  const count = u32(view, p + marker.length);
+  let offset = p + marker.length + 4;
   const lines: string[] = [];
   for (let i = 0; i < count && offset + 4 <= to; i++) {
     const len = u32(view, offset);
