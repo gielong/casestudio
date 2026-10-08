@@ -96,6 +96,7 @@ export default function ERDiagramEditor() {
   const [aiContextScope, setAIContextScope] = useState<AIContextScope>('all');
   const [aiContextFormat, setAIContextFormat] = useState<'markdown'|'compact'|'json'>('markdown');
   const [aiContextDepth, setAIContextDepth] = useState<AIContextDepth>(1);
+  const [aiEntityIds, setAIEntityIds] = useState<string[]>([]);
   const validationIssues = useMemo(() => validateERModel(erEntities, erRelationships), [erEntities, erRelationships]);
 
   const activeSubmodel = useMemo(
@@ -104,8 +105,11 @@ export default function ERDiagramEditor() {
   );
   const aiContext = useMemo(() => {
     const options = { scope: aiContextScope, selectedEntityId, activeSubmodel, depth: aiContextDepth, compact: aiContextFormat === 'compact' };
-    return aiContextFormat === 'json' ? generateAIContextJSON(erEntities, erRelationships, options) : generateAIContextMarkdown(erEntities, erRelationships, options);
-  }, [aiContextScope, aiContextFormat, aiContextDepth, erEntities, erRelationships, selectedEntityId, activeSubmodel]);
+    const allowed = new Set(aiEntityIds);
+    const sourceEntities = erEntities.filter(e => allowed.has(e.id));
+    const sourceRelationships = erRelationships.filter(r => allowed.has(r.sourceEntityId) && allowed.has(r.targetEntityId));
+    return aiContextFormat === 'json' ? generateAIContextJSON(sourceEntities, sourceRelationships, options) : generateAIContextMarkdown(sourceEntities, sourceRelationships, options);
+  }, [aiContextScope, aiContextFormat, aiContextDepth, aiEntityIds, erEntities, erRelationships, selectedEntityId, activeSubmodel]);
   const visibleEntityIds = useMemo(
     () => activeSubmodel ? new Set(activeSubmodel.entityIds) : null,
     [activeSubmodel]
@@ -711,7 +715,7 @@ export default function ERDiagramEditor() {
           <button className="btn btn-sm" onClick={handleExportSQL}>
             📤 匯出 SQL
           </button>
-          <button className="btn btn-sm" onClick={() => setAIContextOpen(true)} title="輸出適合 LLM / Coding Agent 理解的資料庫結構">🤖 AI Context</button>
+          <button className="btn btn-sm" onClick={() => {setAIEntityIds(erEntities.map(e=>e.id));setAIContextOpen(true)}} title="輸出適合 LLM / Coding Agent 理解的資料庫結構">🤖 AI Context</button>
           <button className="btn btn-sm" onClick={() => setValidationOpen(true)} title="檢查 PK、FK、型別、重複名稱、Index 與 Alternate Key">
             🩺 模型檢查 {validationIssues.length ? `(${validationIssues.length})` : '✓'}
           </button>
@@ -957,7 +961,13 @@ export default function ERDiagramEditor() {
                 <label>格式<select value={aiContextFormat} onChange={e=>setAIContextFormat(e.target.value as 'markdown'|'compact'|'json')}><option value="markdown">Markdown（推薦給 LLM）</option><option value="compact">Compact（省 Token）</option><option value="json">JSON（Agent / 程式）</option></select></label>
                 <label>Relationship Depth<select value={String(aiContextDepth)} disabled={aiContextScope!=='selected'} onChange={e=>setAIContextDepth(e.target.value==='all'?'all':Number(e.target.value) as AIContextDepth)}><option value="0">0 - 僅此 Entity</option><option value="1">1 - 直接關聯</option><option value="2">2 - 二層關聯</option><option value="all">All</option></select></label>
               </div>
-              <textarea readOnly value={aiContext} className="ai-context-output" />
+              <div className="ai-export-workspace">
+                <div className="export-entity-picker">
+                  <div className="export-entity-picker-header"><strong>Entity（{aiEntityIds.length}/{erEntities.length}）</strong><span><button className="btn btn-xs" onClick={()=>setAIEntityIds(erEntities.map(e=>e.id))}>全選</button><button className="btn btn-xs" onClick={()=>setAIEntityIds([])}>清除</button></span></div>
+                  <div className="export-entity-list">{erEntities.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(e=><label className="export-entity-item" key={e.id}><input type="checkbox" checked={aiEntityIds.includes(e.id)} onChange={()=>setAIEntityIds(ids=>ids.includes(e.id)?ids.filter(id=>id!==e.id):[...ids,e.id])}/><span title={e.tableName||e.name}>{e.tableName||e.name}</span></label>)}</div>
+                </div>
+                <textarea readOnly value={aiContext} className="ai-context-output" />
+              </div>
               <div className="sql-modal-actions">
                 <button className="btn btn-primary btn-sm" onClick={async()=>{await navigator.clipboard.writeText(aiContext);setSaveStatus('✅ AI Context 已複製')}}>📋 Copy for AI</button>
                 <button className="btn btn-sm" onClick={()=>{const ext=aiContextFormat==='json'?'json':'md';const blob=new Blob([aiContext],{type:'text/plain;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`AI_CONTEXT.${ext}`;a.click();URL.revokeObjectURL(url)}}>⬇️ 匯出檔案</button>
