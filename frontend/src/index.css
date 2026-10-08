@@ -2065,3 +2065,15 @@ body {
 
 /* Entity DDL / AI Context preview: document-style output */
 .entity-designer .ddl-preview{background:#fff!important;color:#111!important;border:1px solid #d1d5db!important}
+
+
+/* Export entity checklists: fixed checkbox size and readable row spacing */
+.export-entity-list{gap:7px!important;padding:6px!important}
+.export-entity-item{display:flex!important;align-items:center!important;gap:10px!important;min-height:26px;flex-shrink:0;overflow:visible!important;line-height:1.5}
+.export-entity-item input[type="checkbox"]{flex:0 0 16px!important;width:16px!important;height:16px!important;min-width:16px!important;margin:0!important}
+.export-entity-item span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px}
+.ai-export-workspace{display:grid;grid-template-columns:230px minmax(0,1fr);gap:10px;min-height:420px;max-height:65vh}
+.ai-export-workspace .export-entity-picker{margin:0;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.ai-export-workspace .export-entity-list{flex:1;max-height:none!important;overflow:auto}
+.ai-export-workspace .ai-context-output{min-width:0;min-height:420px;height:100%;resize:none}
+@media(max-width:640px){.ai-export-workspace{grid-template-columns:1fr;max-height:none}.ai-export-workspace .export-entity-list{max-height:180px!important}.ai-export-workspace .ai-context-output{min-height:300px}}
