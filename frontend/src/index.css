@@ -2077,3 +2077,16 @@ body {
 .ai-export-workspace .export-entity-list{flex:1;max-height:none!important;overflow:auto}
 .ai-export-workspace .ai-context-output{min-width:0;min-height:420px;height:100%;resize:none}
 @media(max-width:640px){.ai-export-workspace{grid-template-columns:1fr;max-height:none}.ai-export-workspace .export-entity-list{max-height:180px!important}.ai-export-workspace .ai-context-output{min-height:300px}}
+
+
+/* AI Context dialog: scroll only the entity list / preview, pin actions at bottom */
+.ai-context-modal{display:flex;flex-direction:column;overflow:hidden;max-height:90dvh}
+.ai-context-modal>.modal-header{flex:0 0 auto}
+.ai-context-modal>.modal-body{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow:hidden}
+.ai-context-modal .ai-context-options{flex:0 0 auto}
+.ai-context-modal .ai-export-workspace{flex:1 1 auto;min-height:0;max-height:none;overflow:hidden}
+.ai-context-modal .ai-export-workspace .export-entity-picker{min-height:0}
+.ai-context-modal .ai-export-workspace .export-entity-list{min-height:0;overflow-y:auto}
+.ai-context-modal .ai-export-workspace .ai-context-output{min-height:0;height:100%;overflow:auto}
+.ai-context-modal .sql-modal-actions{position:relative;z-index:2;flex:0 0 auto;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);background:var(--bg-surface)}
+@media(max-width:640px){.ai-context-modal .ai-export-workspace{overflow:auto}.ai-context-modal .ai-export-workspace .export-entity-list{flex:0 0 auto;max-height:180px!important}.ai-context-modal .ai-export-workspace .ai-context-output{flex:1 1 auto;min-height:200px}}
