@@ -2090,3 +2090,12 @@ body {
 .ai-context-modal .ai-export-workspace .ai-context-output{min-height:0;height:100%;overflow:auto}
 .ai-context-modal .sql-modal-actions{position:relative;z-index:2;flex:0 0 auto;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);background:var(--bg-surface)}
 @media(max-width:640px){.ai-context-modal .ai-export-workspace{overflow:auto}.ai-context-modal .ai-export-workspace .export-entity-list{flex:0 0 auto;max-height:180px!important}.ai-context-modal .ai-export-workspace .ai-context-output{flex:1 1 auto;min-height:200px}}
+
+
+/* Google Drive project picker */
+.drive-project-controls{display:flex;flex-direction:column;gap:7px;padding:12px 10px;border-bottom:1px solid var(--border);min-width:0}
+.drive-project-controls label{font-size:12px;font-weight:600}
+.drive-project-controls select,.drive-project-controls input{width:100%;min-width:0;max-width:100%;padding:7px;border:1px solid var(--border);border-radius:5px;background:var(--bg-surface);color:var(--text-primary)}
+.drive-project-controls .btn{white-space:normal;text-align:center}
+.drive-project-controls small{font-size:11px;line-height:1.4;overflow-wrap:anywhere}
+.drive-local-name{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
