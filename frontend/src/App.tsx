@@ -72,7 +72,15 @@ function App() {
       await connectDrive();
       setDriveConnected(true);
       await refreshProjects();
-      setDriveStatus('Google Drive 已連線。現有本機專案可按「上傳目前專案」建立雲端檔案。');
+      // 首次連線時將目前本機專案建立為雲端專案，後續自動儲存直接寫入 Drive。
+      if (!projectRef.current.fileId) {
+        const data = buildProject();
+        const id = await saveDriveProject(data);
+        projectRef.current.fileId = id;
+        setDriveFileId(id);
+        await refreshProjects();
+      }
+      setDriveStatus('Google Drive 已連線，後續修改將自動儲存至雲端。');
     } catch (error) { setDriveStatus(error instanceof Error ? error.message : String(error)); }
     finally { setDriveBusy(false); }
   };
