@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ReactFlowProvider } from 'reactflow';
 import ConnectionForm from './components/ConnectionForm';
 import SchemaViewer from './components/SchemaViewer';
@@ -8,7 +8,8 @@ import UseCaseEditor from './components/UseCaseEditor';
 import FlowChartEditor from './components/FlowChartEditor';
 import CodeGenerator from './components/CodeGenerator';
 import { useStore, type Page } from './store/useStore';
-import { loadFromLocal, createEmptyProject, saveToLocal } from './store/storage';
+import { loadFromLocal, createEmptyProject, saveToLocal, type ProjectData } from './store/storage';
+import { connectDrive, disconnectDrive, getGoogleClientId, setGoogleClientId, isDriveConnected, listDriveProjects, readDriveProject, saveDriveProject, type DriveProject } from './store/google-drive';
 
 const MOBILE_QUERY = '(max-width: 768px)';
 
@@ -31,6 +32,73 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState('');
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [driveConnected, setDriveConnected] = useState(false);
+  const [driveProjects, setDriveProjects] = useState<DriveProject[]>([]);
+  const [driveFileId, setDriveFileId] = useState<string | null>(null);
+  const [projectName, setProjectName] = useState('case-studio');
+  const [clientId, setClientId] = useState(getGoogleClientId);
+  const [driveStatus, setDriveStatus] = useState('');
+  const [driveBusy, setDriveBusy] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+  const skipSave = useRef(true);
+  const saveGeneration = useRef(0);
+  const projectRef = useRef({ name: 'case-studio', fileId: null as string | null });
+  const saveQueue = useRef<Promise<void>>(Promise.resolve());
+  const buildProject = () => {
+    const data = createEmptyProject(projectRef.current.name);
+    data.erEntities = useStore.getState().erEntities;
+    data.erRelationships = useStore.getState().erRelationships;
+    data.erSubmodels = useStore.getState().erSubmodels;
+    return data;
+  };
+  const applyProject = (data: ProjectData, fileId: string | null) => {
+    skipSave.current = true;
+    saveGeneration.current++;
+    projectRef.current = { name: data.name, fileId };
+    setProjectName(data.name);
+    setDriveFileId(fileId);
+    setErEntities(data.erEntities);
+    setErRelationships(data.erRelationships);
+    setErSubmodels(data.erSubmodels);
+    useStore.getState().setActiveSubmodelId(null);
+    saveToLocal(data);
+    setLastSavedSnapshot(JSON.stringify({ entities: data.erEntities, relationships: data.erRelationships, submodels: data.erSubmodels }));
+  };
+  const refreshProjects = async () => setDriveProjects(await listDriveProjects());
+  const handleConnect = async () => {
+    setDriveBusy(true); setDriveStatus('');
+    try {
+      if (clientId.trim() !== getGoogleClientId()) setGoogleClientId(clientId);
+      await connectDrive();
+      setDriveConnected(true);
+      await refreshProjects();
+      setDriveStatus('Google Drive 已連線。現有本機專案可按「上傳目前專案」建立雲端檔案。');
+    } catch (error) { setDriveStatus(error instanceof Error ? error.message : String(error)); }
+    finally { setDriveBusy(false); }
+  };
+  const handleOpenDrive = async (id: string) => {
+    if (!id || id === driveFileId) return;
+    setDriveBusy(true);
+    try {
+      await saveQueue.current;
+      const data = await readDriveProject(id);
+      applyProject(data, id);
+      setDriveStatus('已開啟：' + data.name);
+    } catch (error) { setDriveStatus(error instanceof Error ? error.message : String(error)); }
+    finally { setDriveBusy(false); }
+  };
+  const handleUploadCurrent = async () => {
+    setDriveBusy(true);
+    try {
+      await saveQueue.current;
+      const data = buildProject();
+      const id = await saveDriveProject(data);
+      projectRef.current.fileId = id; setDriveFileId(id);
+      await refreshProjects();
+      setDriveStatus('已建立雲端專案：' + data.name);
+    } catch (error) { setDriveStatus(error instanceof Error ? error.message : String(error)); }
+    finally { setDriveBusy(false); }
+  };
 
   // Keep responsive layout state in one place instead of mixing JS pixel values with CSS.
   useEffect(() => {
@@ -44,35 +112,35 @@ function App() {
     return () => media.removeEventListener('change', handleViewportChange);
   }, []);
 
-  // Load from localStorage on app start
+  // 初始化完成前禁止自動儲存，避免空白模型覆蓋現有資料。
   useEffect(() => {
     const saved = loadFromLocal();
-    if (saved) {
-      if (saved.erEntities.length > 0 || saved.erRelationships.length > 0) {
-        setErEntities(saved.erEntities);
-        setErRelationships(saved.erRelationships);
-      }
-      setErSubmodels(saved.erSubmodels ?? []);
-      setLastSavedSnapshot(JSON.stringify({ entities: saved.erEntities, relationships: saved.erRelationships, submodels: saved.erSubmodels ?? [] }));
-    } else {
-      // Save initial empty project to localStorage
-      const empty = createEmptyProject('case-studio');
-      saveToLocal(empty);
-    }
+    if (saved) applyProject(saved, null);
+    else saveToLocal(createEmptyProject('case-studio'));
+    setInitialized(true);
   }, []);
 
-  // Auto-save to localStorage when data changes
+  // 本機為離線備份；連線且已選擇 Drive 專案時同步寫入雲端。
   useEffect(() => {
+    if (!initialized) return;
+    if (skipSave.current) { skipSave.current = false; return; }
+    const generation = ++saveGeneration.current;
     const timeout = setTimeout(() => {
-      const data = createEmptyProject('case-studio');
-      data.erEntities = erEntities;
-      data.erRelationships = erRelationships;
-      data.erSubmodels = erSubmodels;
+      if (generation !== saveGeneration.current) return;
+      const data = buildProject();
       saveToLocal(data);
-      setLastSavedSnapshot(JSON.stringify({ entities: erEntities, relationships: erRelationships, submodels: erSubmodels }));
+      setLastSavedSnapshot(JSON.stringify({ entities: data.erEntities, relationships: data.erRelationships, submodels: data.erSubmodels }));
+      if (driveConnected && projectRef.current.fileId && isDriveConnected()) {
+        const id = projectRef.current.fileId;
+        saveQueue.current = saveQueue.current.catch(() => {}).then(async () => {
+          if (generation !== saveGeneration.current || projectRef.current.fileId !== id) return;
+          try { await saveDriveProject(data, id); setDriveStatus('☁️ 已同步至 Google Drive'); }
+          catch (error) { setDriveStatus('雲端儲存失敗：' + (error instanceof Error ? error.message : String(error))); }
+        });
+      }
     }, 1000);
     return () => clearTimeout(timeout);
-  }, [erEntities, erRelationships, erSubmodels]);
+  }, [initialized, erEntities, erRelationships, erSubmodels, driveConnected]);
 
   const currentSnapshot = JSON.stringify({ entities: erEntities, relationships: erRelationships, submodels: erSubmodels });
   const hasUnsavedChanges = lastSavedSnapshot !== '' && currentSnapshot !== lastSavedSnapshot;
@@ -127,6 +195,23 @@ function App() {
             <h1><span className="brand-icon">🗂️</span><span className="brand-text">CaseTool</span></h1>
             <span className="subtitle">CASE 開發輔助工具</span>
           </div>
+          <div className="drive-project-controls">
+            {driveConnected ? <>
+              <label htmlFor="drive-project-select">Google Drive 專案</label>
+              <select id="drive-project-select" value={driveFileId || ''} disabled={driveBusy} onChange={e => void handleOpenDrive(e.target.value)}>
+                <option value="">目前本機專案：{projectName}</option>
+                {driveProjects.map(p => <option key={p.id} value={p.id}>{p.name.replace(/\\.case\\.json$/, '')}</option>)}
+              </select>
+              <button className="btn btn-xs" disabled={driveBusy} onClick={() => void handleUploadCurrent()}>☁️ 上傳目前專案</button>
+              <button className="btn btn-xs" disabled={driveBusy} onClick={() => void refreshProjects().catch(e => setDriveStatus(String(e)))}>重新整理</button>
+              <button className="btn btn-xs" onClick={() => {disconnectDrive();setDriveConnected(false);setDriveProjects([]);projectRef.current.fileId=null;setDriveFileId(null);setDriveStatus('已中斷連線');}}>中斷 Drive</button>
+            </> : <>
+              <label>目前專案</label><div className="drive-local-name">{projectName}</div>
+              <input aria-label="Google OAuth Client ID" placeholder="Google OAuth Client ID" value={clientId} onChange={e => setClientId(e.target.value)} />
+              <button className="btn btn-xs" disabled={driveBusy} onClick={() => void handleConnect()}>連結 Google Drive</button>
+            </>}
+            {driveStatus && <small role="status">{driveStatus}</small>}
+          </div>
           <div className="nav-items">
             {NAV_ITEMS.map((item) => (
               <button
@@ -142,7 +227,7 @@ function App() {
               </button>
             ))}
           </div>
-          <div className="sidebar-version">v2026.10.08.029</div>
+          <div className="sidebar-version">v2026.10.11.030</div>
           <button
             className="sidebar-toggle"
             onClick={() => setSidebarOpen(!sidebarOpen)}
